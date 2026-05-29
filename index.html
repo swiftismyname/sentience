@@ -29,6 +29,22 @@
   </style>
 </head>
 <body>
+  <script>
+    window.addEventListener('error', function(e) {
+      var s = document.getElementById('splash');
+      if (s) s.innerHTML = '<div style="color:#ff6060;font-family:monospace;padding:30px;max-width:90vw">'
+        + '<div style="font-size:14px;font-weight:bold;margin-bottom:10px">⚠ Startup Error</div>'
+        + '<div style="font-size:12px;word-break:break-all">' + (e.message||'Unknown error') + '</div>'
+        + '<div style="font-size:10px;color:#888;margin-top:8px">' + (e.filename||'') + ' line ' + (e.lineno||'?') + '</div>'
+        + '</div>';
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      var s = document.getElementById('splash');
+      if (s) s.innerHTML = '<div style="color:#ff6060;font-family:monospace;padding:30px;max-width:90vw">'
+        + '<div style="font-size:14px;font-weight:bold;margin-bottom:10px">⚠ Async Error</div>'
+        + '<div style="font-size:12px;word-break:break-all">' + (e.reason||'Unknown') + '</div></div>';
+    });
+  </script>
   <!-- Loading splash -->
   <div id="splash">
     <div class="splash-title">SENTIENCE</div>
@@ -5351,7 +5367,13 @@ function WeightGroup({
     }, "10")));
   }));
 }
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+try {
+  ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+} catch(e) {
+  var s = document.getElementById('splash');
+  if (s) s.innerHTML = '<div style="color:#ff6060;font-family:monospace;padding:30px">'
+    + '<b>React mount error:</b><br>' + e.message + '<br><small>' + (e.stack||'').slice(0,400) + '</small></div>';
+}
 </script>
 
   <script>
