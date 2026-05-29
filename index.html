@@ -1,0 +1,5370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>SENTIENCE — Global Human Impact Monitor</title>
+
+  <!-- React 18 -->
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+  <!-- D3 v7 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden;background:#020913}
+    #root{height:100%}
+    /* Loading screen — hides once React mounts */
+    #splash{position:fixed;inset:0;background:#020913;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:9999;pointer-events:none;transition:opacity 0.5s}
+    #splash.hide{opacity:0}
+    .splash-title{font-family:'Courier New',monospace;font-size:16px;font-weight:700;letter-spacing:4px;color:#fff}
+    .splash-sub{font-family:'Courier New',monospace;font-size:9px;letter-spacing:3px;color:#3a8aff}
+    .splash-dots{display:flex;gap:6px}
+    .splash-dots span{width:8px;height:8px;border-radius:50%;background:#2a72e0;animation:sdot 1.2s ease-in-out infinite}
+    .splash-dots span:nth-child(2){animation-delay:0.2s}
+    .splash-dots span:nth-child(3){animation-delay:0.4s}
+    @keyframes sdot{0%,80%,100%{opacity:0.2;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}
+  </style>
+</head>
+<body>
+  <!-- Loading splash -->
+  <div id="splash">
+    <div class="splash-title">SENTIENCE</div>
+    <div class="splash-sub">GLOBAL HUMAN IMPACT MONITOR</div>
+    <div class="splash-dots"><span></span><span></span><span></span></div>
+    <div style="font-family:'Courier New',monospace;font-size:10px;color:#1a4a7a;letter-spacing:2px;margin-top:4px">Initialising...</div>
+  </div>
+  <div id="root"></div>
+
+  <script type="text/javascript">
+const {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo
+} = React;
+const WORLD_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+const TOPO_CDN = "https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js";
+const CATS = {
+  war_conflict: {
+    label: "War & Conflict",
+    side: "neg",
+    rgb: [255, 22, 22],
+    icon: "⚔",
+    desc: "Armed conflicts, military operations"
+  },
+  terrorism: {
+    label: "Terrorism",
+    side: "neg",
+    rgb: [255, 55, 55],
+    icon: "💥",
+    desc: "Terror attacks and threats"
+  },
+  natural_disaster: {
+    label: "Natural Disaster",
+    side: "neg",
+    rgb: [255, 128, 0],
+    icon: "🌊",
+    desc: "Earthquakes, floods, storms, wildfires"
+  },
+  disease_health: {
+    label: "Disease & Health",
+    side: "neg",
+    rgb: [255, 175, 0],
+    icon: "🦠",
+    desc: "Epidemics, health crises, outbreaks"
+  },
+  political_oppression: {
+    label: "Political Oppression",
+    side: "neg",
+    rgb: [210, 0, 100],
+    icon: "⛓",
+    desc: "Authoritarianism, rights violations"
+  },
+  economic_crisis: {
+    label: "Economic Crisis",
+    side: "neg",
+    rgb: [255, 115, 70],
+    icon: "📉",
+    desc: "Recession, hyperinflation, poverty"
+  },
+  crime_violence: {
+    label: "Crime & Violence",
+    side: "neg",
+    rgb: [255, 45, 95],
+    icon: "🔫",
+    desc: "Gang violence, organized crime"
+  },
+  humanitarian_crisis: {
+    label: "Humanitarian Crisis",
+    side: "neg",
+    rgb: [255, 88, 35],
+    icon: "😔",
+    desc: "Refugees, famine, displacement"
+  },
+  environmental_harm: {
+    label: "Environmental Harm",
+    side: "neg",
+    rgb: [180, 118, 0],
+    icon: "🌫",
+    desc: "Pollution, deforestation, ecological damage"
+  },
+  peace_diplomacy: {
+    label: "Peace & Diplomacy",
+    side: "pos",
+    rgb: [0, 255, 118],
+    icon: "🕊",
+    desc: "Peace deals, diplomatic breakthroughs"
+  },
+  medical_breakthrough: {
+    label: "Medical Breakthrough",
+    side: "pos",
+    rgb: [0, 220, 190],
+    icon: "💊",
+    desc: "New treatments, vaccines, health gains"
+  },
+  economic_growth: {
+    label: "Economic Growth",
+    side: "pos",
+    rgb: [55, 255, 158],
+    icon: "📈",
+    desc: "GDP growth, employment, prosperity"
+  },
+  environmental_win: {
+    label: "Environmental Win",
+    side: "pos",
+    rgb: [100, 255, 80],
+    icon: "🌱",
+    desc: "Conservation, renewables, climate wins"
+  },
+  social_progress: {
+    label: "Social Progress",
+    side: "pos",
+    rgb: [0, 235, 240],
+    icon: "🤝",
+    desc: "Civil rights, equality, community"
+  },
+  humanitarian_aid: {
+    label: "Humanitarian Aid",
+    side: "pos",
+    rgb: [55, 185, 255],
+    icon: "❤",
+    desc: "Aid delivery, rescue, relief efforts"
+  },
+  scientific_discovery: {
+    label: "Scientific Discovery",
+    side: "pos",
+    rgb: [115, 138, 255],
+    icon: "🔬",
+    desc: "Science and technology breakthroughs"
+  },
+  political_freedom: {
+    label: "Political Freedom",
+    side: "pos",
+    rgb: [175, 118, 255],
+    icon: "🗳",
+    desc: "Democratic progress, elections, liberties"
+  }
+};
+const NEG_KEYS = Object.keys(CATS).filter(k => CATS[k].side === "neg");
+const POS_KEYS = Object.keys(CATS).filter(k => CATS[k].side === "pos");
+
+/* ── Themes ── */
+const THEMES = {
+  dark: {
+    bg: "#020913",
+    panelBg: "#030c1e",
+    cardBg: "#050f1e",
+    cardBg2: "#081e38",
+    border: "#0e2e58",
+    border2: "#0a2540",
+    borderLight: "#071628",
+    text: "#b8d0f0",
+    textSec: "#3a6a9a",
+    textMuted: "#1a4a7a",
+    textDim: "#071628",
+    accent: "#70b8ff",
+    accentDim: "#2a6aaa",
+    accentText: "#70b8ff",
+    neg: "#ff5555",
+    pos: "#00ff88",
+    negBg: "#1a0509",
+    posBg: "#050d0a",
+    ocean: "#020913",
+    countryFill: "#071d38",
+    countryStroke: "#0e2f5a",
+    graticule: "#071628",
+    tooltipBg: "#030c1e",
+    inputBg: "#050f1e",
+    tagBg: "#040c1a",
+    modeNegBg: "#2a0808",
+    modePossBg: "#082a14"
+  },
+  light: {
+    bg: "#edf2f7",
+    panelBg: "#ffffff",
+    cardBg: "#f4f7fb",
+    cardBg2: "#e8eef8",
+    border: "#c0ccd8",
+    border2: "#ccd4e2",
+    borderLight: "#d8e2f0",
+    text: "#1a2540",
+    textSec: "#4a6a8a",
+    textMuted: "#6a8aaa",
+    textDim: "#c0ccd8",
+    accent: "#1a5abf",
+    accentDim: "#3a7ad0",
+    accentText: "#1a5abf",
+    neg: "#cc2020",
+    pos: "#006644",
+    negBg: "#fff0f0",
+    posBg: "#f0fff8",
+    ocean: "#a8c4e0",
+    countryFill: "#dce8f8",
+    countryStroke: "#9ab0cc",
+    graticule: "#c4d4e8",
+    tooltipBg: "#ffffff",
+    inputBg: "#f4f7fb",
+    tagBg: "#eef2f8",
+    modeNegBg: "#fff0f0",
+    modePossBg: "#f0fff8"
+  }
+};
+const DEFAULT_W = Object.fromEntries(Object.keys(CATS).map(k => [k, 7]));
+
+/* ── Weight presets ── */
+const SUF_PRESETS = {
+  custom: {
+    label: "Custom",
+    desc: "Your manual configuration"
+  },
+  balanced: {
+    label: "Balanced",
+    desc: "All categories weighted equally"
+  },
+  combat: {
+    label: "Combat & Security",
+    desc: "War, terrorism and crime amplified"
+  },
+  humanitarian: {
+    label: "Humanitarian",
+    desc: "Displacement, famine and economic collapse"
+  },
+  climate: {
+    label: "Climate & Disaster",
+    desc: "Environmental harm and natural disasters"
+  },
+  political: {
+    label: "Political Lens",
+    desc: "Oppression, governance and economic crises"
+  },
+  health: {
+    label: "Health & Epidemic",
+    desc: "Disease, health systems and outbreaks"
+  }
+};
+const SUF_W = {
+  balanced: {
+    war_conflict: 7,
+    terrorism: 7,
+    natural_disaster: 7,
+    disease_health: 7,
+    political_oppression: 7,
+    economic_crisis: 7,
+    crime_violence: 7,
+    humanitarian_crisis: 7,
+    environmental_harm: 7
+  },
+  combat: {
+    war_conflict: 10,
+    terrorism: 10,
+    crime_violence: 8,
+    political_oppression: 6,
+    humanitarian_crisis: 5,
+    natural_disaster: 4,
+    economic_crisis: 4,
+    disease_health: 3,
+    environmental_harm: 2
+  },
+  humanitarian: {
+    humanitarian_crisis: 10,
+    disease_health: 9,
+    economic_crisis: 8,
+    natural_disaster: 8,
+    political_oppression: 6,
+    crime_violence: 5,
+    war_conflict: 5,
+    terrorism: 3,
+    environmental_harm: 4
+  },
+  climate: {
+    environmental_harm: 10,
+    natural_disaster: 9,
+    humanitarian_crisis: 6,
+    economic_crisis: 5,
+    disease_health: 5,
+    political_oppression: 4,
+    war_conflict: 3,
+    terrorism: 2,
+    crime_violence: 3
+  },
+  political: {
+    political_oppression: 10,
+    economic_crisis: 8,
+    crime_violence: 7,
+    war_conflict: 6,
+    terrorism: 6,
+    humanitarian_crisis: 5,
+    disease_health: 4,
+    natural_disaster: 4,
+    environmental_harm: 3
+  },
+  health: {
+    disease_health: 10,
+    humanitarian_crisis: 8,
+    environmental_harm: 6,
+    economic_crisis: 5,
+    natural_disaster: 5,
+    political_oppression: 4,
+    war_conflict: 4,
+    terrorism: 3,
+    crime_violence: 3
+  }
+};
+const POS_PRESETS = {
+  custom: {
+    label: "Custom",
+    desc: "Your manual configuration"
+  },
+  balanced: {
+    label: "Balanced",
+    desc: "All categories weighted equally"
+  },
+  peace: {
+    label: "Peace & Freedom",
+    desc: "Diplomacy, elections and human rights"
+  },
+  science: {
+    label: "Science & Health",
+    desc: "Breakthroughs and medical advances"
+  },
+  environment: {
+    label: "Environmental",
+    desc: "Conservation and climate wins"
+  },
+  economic: {
+    label: "Economic Progress",
+    desc: "Growth, employment and trade gains"
+  },
+  social: {
+    label: "Social Progress",
+    desc: "Equality, aid and community wins"
+  }
+};
+const POS_W = {
+  balanced: {
+    peace_diplomacy: 7,
+    medical_breakthrough: 7,
+    economic_growth: 7,
+    environmental_win: 7,
+    social_progress: 7,
+    humanitarian_aid: 7,
+    scientific_discovery: 7,
+    political_freedom: 7
+  },
+  peace: {
+    peace_diplomacy: 10,
+    political_freedom: 10,
+    humanitarian_aid: 8,
+    social_progress: 7,
+    economic_growth: 5,
+    environmental_win: 4,
+    medical_breakthrough: 4,
+    scientific_discovery: 3
+  },
+  science: {
+    scientific_discovery: 10,
+    medical_breakthrough: 10,
+    environmental_win: 6,
+    social_progress: 5,
+    humanitarian_aid: 5,
+    economic_growth: 5,
+    peace_diplomacy: 4,
+    political_freedom: 3
+  },
+  environment: {
+    environmental_win: 10,
+    scientific_discovery: 7,
+    social_progress: 6,
+    humanitarian_aid: 5,
+    peace_diplomacy: 5,
+    economic_growth: 4,
+    medical_breakthrough: 4,
+    political_freedom: 3
+  },
+  economic: {
+    economic_growth: 10,
+    social_progress: 8,
+    political_freedom: 7,
+    humanitarian_aid: 6,
+    peace_diplomacy: 5,
+    scientific_discovery: 5,
+    medical_breakthrough: 4,
+    environmental_win: 4
+  },
+  social: {
+    social_progress: 10,
+    humanitarian_aid: 9,
+    political_freedom: 8,
+    peace_diplomacy: 7,
+    economic_growth: 6,
+    environmental_win: 5,
+    medical_breakthrough: 4,
+    scientific_discovery: 4
+  }
+};
+
+/* ── News sources ── */
+const SOURCES = {
+  reuters: {
+    label: "Reuters",
+    region: "International",
+    bias: "Center",
+    biasCol: "#3a8aff"
+  },
+  ap: {
+    label: "AP News",
+    region: "International",
+    bias: "Center",
+    biasCol: "#3a8aff"
+  },
+  bbc: {
+    label: "BBC News",
+    region: "International",
+    bias: "Center",
+    biasCol: "#3a8aff"
+  },
+  aljazeera: {
+    label: "Al Jazeera",
+    region: "International",
+    bias: "Center",
+    biasCol: "#3a8aff"
+  },
+  guardian: {
+    label: "The Guardian",
+    region: "UK/Global",
+    bias: "Center-Left",
+    biasCol: "#00cc88"
+  },
+  nyt: {
+    label: "New York Times",
+    region: "US/Global",
+    bias: "Center-Left",
+    biasCol: "#00cc88"
+  },
+  washpost: {
+    label: "Washington Post",
+    region: "US/Global",
+    bias: "Center-Left",
+    biasCol: "#00cc88"
+  },
+  wsj: {
+    label: "Wall Street Journal",
+    region: "US/Global",
+    bias: "Center-Right",
+    biasCol: "#ffaa22"
+  },
+  fox: {
+    label: "Fox News",
+    region: "US",
+    bias: "Right",
+    biasCol: "#ff7722"
+  },
+  cnn: {
+    label: "CNN",
+    region: "US/Global",
+    bias: "Center-Left",
+    biasCol: "#00cc88"
+  },
+  dw: {
+    label: "Deutsche Welle",
+    region: "Europe",
+    bias: "Center",
+    biasCol: "#3a8aff"
+  },
+  france24: {
+    label: "France 24",
+    region: "Europe",
+    bias: "Center",
+    biasCol: "#3a8aff"
+  },
+  lemonde: {
+    label: "Le Monde",
+    region: "Europe",
+    bias: "Center-Left",
+    biasCol: "#00cc88"
+  },
+  spiegel: {
+    label: "Der Spiegel",
+    region: "Europe",
+    bias: "Center-Left",
+    biasCol: "#00cc88"
+  },
+  rfi: {
+    label: "RFI",
+    region: "Africa/Global",
+    bias: "Center",
+    biasCol: "#3a8aff"
+  },
+  xinhua: {
+    label: "Xinhua",
+    region: "China",
+    bias: "State",
+    biasCol: "#ff4444"
+  },
+  rt: {
+    label: "RT (Russia Today)",
+    region: "Russia",
+    bias: "State",
+    biasCol: "#ff4444"
+  },
+  tass: {
+    label: "TASS",
+    region: "Russia",
+    bias: "State",
+    biasCol: "#ff4444"
+  },
+  almonitor: {
+    label: "Al-Monitor",
+    region: "Middle East",
+    bias: "Center",
+    biasCol: "#3a8aff"
+  },
+  arabnews: {
+    label: "Arab News",
+    region: "Middle East",
+    bias: "Center-Right",
+    biasCol: "#ffaa22"
+  },
+  dawn: {
+    label: "Dawn",
+    region: "South Asia",
+    bias: "Center",
+    biasCol: "#3a8aff"
+  },
+  hindustantimes: {
+    label: "Hindustan Times",
+    region: "South Asia",
+    bias: "Center",
+    biasCol: "#3a8aff"
+  },
+  scmp: {
+    label: "SCMP",
+    region: "East Asia",
+    bias: "Center",
+    biasCol: "#3a8aff"
+  },
+  kyodo: {
+    label: "Kyodo News",
+    region: "East Asia",
+    bias: "Center",
+    biasCol: "#3a8aff"
+  },
+  theage: {
+    label: "The Age",
+    region: "Australia",
+    bias: "Center-Left",
+    biasCol: "#00cc88"
+  }
+};
+const SOURCE_REGIONS = [...new Set(Object.values(SOURCES).map(s => s.region))];
+function buildSourceInstruction(sources) {
+  const on = Object.entries(sources).filter(([, v]) => v).map(([k]) => {
+    var _SOURCES$k;
+    return (_SOURCES$k = SOURCES[k]) === null || _SOURCES$k === void 0 ? void 0 : _SOURCES$k.label;
+  }).filter(Boolean);
+  const off = Object.entries(sources).filter(([, v]) => !v).map(([k]) => {
+    var _SOURCES$k2;
+    return (_SOURCES$k2 = SOURCES[k]) === null || _SOURCES$k2 === void 0 ? void 0 : _SOURCES$k2.label;
+  }).filter(Boolean);
+  if (on.length === 0) return "Avoid using any established news sources — rely on primary government or NGO reports only.";
+  if (off.length === 0) return ""; // all on — no restriction needed
+  return `Prefer results from: ${on.join(", ")}. Avoid or deprioritise: ${off.join(", ")}.`;
+}
+const SYS = `You are a global news intelligence analyst. Search for recent major news events happening worldwide.
+
+Return ONLY valid JSON parseable by JSON.parse(). No markdown, no code blocks, no preamble text. Keep descriptions to 1 sentence max.
+
+{
+  "events": [
+    {
+      "id": "e1",
+      "headline": "Short headline under 12 words",
+      "description": "One sentence on human impact.",
+      "country": "Country",
+      "region": "City or region",
+      "lat": 0.0,
+      "lng": 0.0,
+      "category": "war_conflict|terrorism|natural_disaster|disease_health|political_oppression|economic_crisis|crime_violence|humanitarian_crisis|environmental_harm|peace_diplomacy|medical_breakthrough|economic_growth|environmental_win|social_progress|humanitarian_aid|scientific_discovery|political_freedom",
+      "sentiment": "negative|positive",
+      "intensity": 1,
+      "url": "",
+      "source": "Source Name",
+      "timestamp": "YYYY-MM-DD"
+    }
+  ],
+  "globalMood": 0,
+  "summary": "One sentence global overview.",
+  "fetchedAt": "ISO_datetime"
+}
+
+Include the number of events specified in the user message, spread across multiple continents. Intensity: 10=catastrophic, 7=major crisis, 5=significant, 3=moderate, 1=minor. Include both negative and positive events. Use precise coordinates for the event location.`;
+
+/* ── Repair truncated JSON by closing open structures ── */
+function repairJSON(str) {
+  // Remove trailing incomplete key-value or comma
+  let s = str.trimEnd();
+  // Drop partial last line if it doesn't end cleanly
+  s = s.replace(/,\s*$/, "");
+  // Count open braces/brackets to figure out what needs closing
+  let braces = 0,
+    brackets = 0;
+  let inStr = false,
+    escape = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (c === "\\" && inStr) {
+      escape = true;
+      continue;
+    }
+    if (c === '"') {
+      inStr = !inStr;
+      continue;
+    }
+    if (inStr) continue;
+    if (c === "{") braces++;else if (c === "}") braces--;else if (c === "[") brackets++;else if (c === "]") brackets--;
+  }
+  // If we're mid-string, close it
+  if (inStr) s += '"';
+  // Close open objects/arrays in reverse order
+  // Simple heuristic: close brackets first then braces
+  while (brackets > 0) {
+    s += "]";
+    brackets--;
+  }
+  while (braces > 0) {
+    s += "}";
+    braces--;
+  }
+  return s;
+}
+/* ── Country ISO-2 → lat/lng/name ── */
+const CC2 = {
+  AF: {
+    n: "Afghanistan",
+    lat: 33.94,
+    lng: 67.71
+  },
+  AL: {
+    n: "Albania",
+    lat: 41.15,
+    lng: 20.17
+  },
+  DZ: {
+    n: "Algeria",
+    lat: 28.03,
+    lng: 1.66
+  },
+  AO: {
+    n: "Angola",
+    lat: -11.20,
+    lng: 17.87
+  },
+  AR: {
+    n: "Argentina",
+    lat: -38.42,
+    lng: -63.62
+  },
+  AM: {
+    n: "Armenia",
+    lat: 40.07,
+    lng: 45.04
+  },
+  AU: {
+    n: "Australia",
+    lat: -25.27,
+    lng: 133.78
+  },
+  AT: {
+    n: "Austria",
+    lat: 47.52,
+    lng: 14.55
+  },
+  AZ: {
+    n: "Azerbaijan",
+    lat: 40.14,
+    lng: 47.58
+  },
+  BD: {
+    n: "Bangladesh",
+    lat: 23.68,
+    lng: 90.36
+  },
+  BY: {
+    n: "Belarus",
+    lat: 53.71,
+    lng: 27.95
+  },
+  BE: {
+    n: "Belgium",
+    lat: 50.50,
+    lng: 4.47
+  },
+  BO: {
+    n: "Bolivia",
+    lat: -16.29,
+    lng: -63.59
+  },
+  BA: {
+    n: "Bosnia",
+    lat: 43.92,
+    lng: 17.68
+  },
+  BR: {
+    n: "Brazil",
+    lat: -14.23,
+    lng: -51.92
+  },
+  BF: {
+    n: "Burkina Faso",
+    lat: 12.36,
+    lng: -1.56
+  },
+  KH: {
+    n: "Cambodia",
+    lat: 12.57,
+    lng: 104.99
+  },
+  CM: {
+    n: "Cameroon",
+    lat: 7.37,
+    lng: 12.35
+  },
+  CA: {
+    n: "Canada",
+    lat: 56.13,
+    lng: -106.35
+  },
+  CF: {
+    n: "CAR",
+    lat: 6.61,
+    lng: 20.94
+  },
+  TD: {
+    n: "Chad",
+    lat: 15.45,
+    lng: 18.73
+  },
+  CL: {
+    n: "Chile",
+    lat: -35.68,
+    lng: -71.54
+  },
+  CN: {
+    n: "China",
+    lat: 35.86,
+    lng: 104.19
+  },
+  CO: {
+    n: "Colombia",
+    lat: 4.57,
+    lng: -74.30
+  },
+  CD: {
+    n: "DRC",
+    lat: -4.04,
+    lng: 21.76
+  },
+  HR: {
+    n: "Croatia",
+    lat: 45.10,
+    lng: 15.20
+  },
+  CU: {
+    n: "Cuba",
+    lat: 21.52,
+    lng: -77.78
+  },
+  CZ: {
+    n: "Czech Republic",
+    lat: 49.82,
+    lng: 15.47
+  },
+  DK: {
+    n: "Denmark",
+    lat: 56.26,
+    lng: 9.50
+  },
+  EG: {
+    n: "Egypt",
+    lat: 26.82,
+    lng: 30.80
+  },
+  SV: {
+    n: "El Salvador",
+    lat: 13.79,
+    lng: -88.90
+  },
+  ER: {
+    n: "Eritrea",
+    lat: 15.18,
+    lng: 39.78
+  },
+  ET: {
+    n: "Ethiopia",
+    lat: 9.15,
+    lng: 40.49
+  },
+  FI: {
+    n: "Finland",
+    lat: 61.92,
+    lng: 25.75
+  },
+  FR: {
+    n: "France",
+    lat: 46.23,
+    lng: 2.21
+  },
+  GE: {
+    n: "Georgia",
+    lat: 42.32,
+    lng: 43.36
+  },
+  DE: {
+    n: "Germany",
+    lat: 51.17,
+    lng: 10.45
+  },
+  GH: {
+    n: "Ghana",
+    lat: 7.95,
+    lng: -1.02
+  },
+  GR: {
+    n: "Greece",
+    lat: 39.07,
+    lng: 21.82
+  },
+  GT: {
+    n: "Guatemala",
+    lat: 15.78,
+    lng: -90.23
+  },
+  HT: {
+    n: "Haiti",
+    lat: 18.97,
+    lng: -72.29
+  },
+  HN: {
+    n: "Honduras",
+    lat: 15.20,
+    lng: -86.24
+  },
+  HU: {
+    n: "Hungary",
+    lat: 47.16,
+    lng: 19.50
+  },
+  IN: {
+    n: "India",
+    lat: 20.59,
+    lng: 78.96
+  },
+  ID: {
+    n: "Indonesia",
+    lat: -0.79,
+    lng: 113.92
+  },
+  IR: {
+    n: "Iran",
+    lat: 32.43,
+    lng: 53.69
+  },
+  IQ: {
+    n: "Iraq",
+    lat: 33.22,
+    lng: 43.68
+  },
+  IL: {
+    n: "Israel",
+    lat: 31.05,
+    lng: 34.85
+  },
+  IT: {
+    n: "Italy",
+    lat: 41.87,
+    lng: 12.57
+  },
+  CI: {
+    n: "Ivory Coast",
+    lat: 7.54,
+    lng: -5.55
+  },
+  JP: {
+    n: "Japan",
+    lat: 36.20,
+    lng: 138.25
+  },
+  JO: {
+    n: "Jordan",
+    lat: 30.59,
+    lng: 36.24
+  },
+  KZ: {
+    n: "Kazakhstan",
+    lat: 48.02,
+    lng: 66.92
+  },
+  KE: {
+    n: "Kenya",
+    lat: -0.02,
+    lng: 37.91
+  },
+  LA: {
+    n: "Laos",
+    lat: 19.86,
+    lng: 102.50
+  },
+  LB: {
+    n: "Lebanon",
+    lat: 33.85,
+    lng: 35.86
+  },
+  LY: {
+    n: "Libya",
+    lat: 26.34,
+    lng: 17.23
+  },
+  MW: {
+    n: "Malawi",
+    lat: -13.25,
+    lng: 34.30
+  },
+  MY: {
+    n: "Malaysia",
+    lat: 4.21,
+    lng: 101.98
+  },
+  ML: {
+    n: "Mali",
+    lat: 17.57,
+    lng: -3.99
+  },
+  MR: {
+    n: "Mauritania",
+    lat: 21.01,
+    lng: -10.94
+  },
+  MX: {
+    n: "Mexico",
+    lat: 23.63,
+    lng: -102.55
+  },
+  MD: {
+    n: "Moldova",
+    lat: 47.41,
+    lng: 28.37
+  },
+  MN: {
+    n: "Mongolia",
+    lat: 46.86,
+    lng: 103.85
+  },
+  MA: {
+    n: "Morocco",
+    lat: 31.79,
+    lng: -7.09
+  },
+  MZ: {
+    n: "Mozambique",
+    lat: -18.67,
+    lng: 35.53
+  },
+  MM: {
+    n: "Myanmar",
+    lat: 21.91,
+    lng: 95.96
+  },
+  NP: {
+    n: "Nepal",
+    lat: 28.39,
+    lng: 84.12
+  },
+  NL: {
+    n: "Netherlands",
+    lat: 52.13,
+    lng: 5.29
+  },
+  NZ: {
+    n: "New Zealand",
+    lat: -40.90,
+    lng: 174.89
+  },
+  NE: {
+    n: "Niger",
+    lat: 17.61,
+    lng: 8.08
+  },
+  NG: {
+    n: "Nigeria",
+    lat: 9.08,
+    lng: 8.68
+  },
+  KP: {
+    n: "North Korea",
+    lat: 40.34,
+    lng: 127.51
+  },
+  NO: {
+    n: "Norway",
+    lat: 60.47,
+    lng: 8.47
+  },
+  OM: {
+    n: "Oman",
+    lat: 21.51,
+    lng: 55.92
+  },
+  PK: {
+    n: "Pakistan",
+    lat: 30.38,
+    lng: 69.35
+  },
+  PS: {
+    n: "Palestine",
+    lat: 31.95,
+    lng: 35.23
+  },
+  PA: {
+    n: "Panama",
+    lat: 8.54,
+    lng: -80.78
+  },
+  PY: {
+    n: "Paraguay",
+    lat: -23.44,
+    lng: -58.44
+  },
+  PE: {
+    n: "Peru",
+    lat: -9.19,
+    lng: -75.02
+  },
+  PH: {
+    n: "Philippines",
+    lat: 12.88,
+    lng: 121.77
+  },
+  PL: {
+    n: "Poland",
+    lat: 51.92,
+    lng: 19.15
+  },
+  PT: {
+    n: "Portugal",
+    lat: 39.40,
+    lng: -8.22
+  },
+  QA: {
+    n: "Qatar",
+    lat: 25.35,
+    lng: 51.18
+  },
+  RO: {
+    n: "Romania",
+    lat: 45.94,
+    lng: 24.97
+  },
+  RU: {
+    n: "Russia",
+    lat: 61.52,
+    lng: 105.32
+  },
+  RW: {
+    n: "Rwanda",
+    lat: -1.94,
+    lng: 29.87
+  },
+  SA: {
+    n: "Saudi Arabia",
+    lat: 23.89,
+    lng: 45.08
+  },
+  SN: {
+    n: "Senegal",
+    lat: 14.50,
+    lng: -14.45
+  },
+  RS: {
+    n: "Serbia",
+    lat: 44.02,
+    lng: 21.01
+  },
+  SO: {
+    n: "Somalia",
+    lat: 5.15,
+    lng: 46.20
+  },
+  ZA: {
+    n: "South Africa",
+    lat: -30.56,
+    lng: 22.94
+  },
+  KR: {
+    n: "South Korea",
+    lat: 35.91,
+    lng: 127.77
+  },
+  SS: {
+    n: "South Sudan",
+    lat: 6.88,
+    lng: 31.31
+  },
+  ES: {
+    n: "Spain",
+    lat: 40.46,
+    lng: -3.75
+  },
+  LK: {
+    n: "Sri Lanka",
+    lat: 7.87,
+    lng: 80.77
+  },
+  SD: {
+    n: "Sudan",
+    lat: 12.86,
+    lng: 30.22
+  },
+  SE: {
+    n: "Sweden",
+    lat: 60.13,
+    lng: 18.64
+  },
+  CH: {
+    n: "Switzerland",
+    lat: 46.82,
+    lng: 8.23
+  },
+  SY: {
+    n: "Syria",
+    lat: 34.80,
+    lng: 38.99
+  },
+  TW: {
+    n: "Taiwan",
+    lat: 23.70,
+    lng: 120.96
+  },
+  TZ: {
+    n: "Tanzania",
+    lat: -6.37,
+    lng: 34.89
+  },
+  TH: {
+    n: "Thailand",
+    lat: 15.87,
+    lng: 100.99
+  },
+  TN: {
+    n: "Tunisia",
+    lat: 33.89,
+    lng: 9.54
+  },
+  TR: {
+    n: "Turkey",
+    lat: 38.96,
+    lng: 35.24
+  },
+  UG: {
+    n: "Uganda",
+    lat: 1.37,
+    lng: 32.29
+  },
+  UA: {
+    n: "Ukraine",
+    lat: 48.38,
+    lng: 31.17
+  },
+  AE: {
+    n: "UAE",
+    lat: 23.42,
+    lng: 53.85
+  },
+  GB: {
+    n: "United Kingdom",
+    lat: 55.38,
+    lng: -3.44
+  },
+  US: {
+    n: "United States",
+    lat: 37.09,
+    lng: -95.71
+  },
+  UY: {
+    n: "Uruguay",
+    lat: -32.52,
+    lng: -55.77
+  },
+  UZ: {
+    n: "Uzbekistan",
+    lat: 41.38,
+    lng: 64.59
+  },
+  VE: {
+    n: "Venezuela",
+    lat: 6.42,
+    lng: -66.59
+  },
+  VN: {
+    n: "Vietnam",
+    lat: 14.06,
+    lng: 108.28
+  },
+  YE: {
+    n: "Yemen",
+    lat: 15.55,
+    lng: 48.52
+  },
+  ZM: {
+    n: "Zambia",
+    lat: -13.13,
+    lng: 27.85
+  },
+  ZW: {
+    n: "Zimbabwe",
+    lat: -19.02,
+    lng: 29.15
+  }
+};
+const NEG_KW = "war OR attack OR killed OR explosion OR conflict OR disaster OR earthquake OR flood OR hurricane OR epidemic OR crisis OR terrorism OR famine OR massacre OR crackdown";
+const POS_KW = "peace deal OR ceasefire OR cure OR vaccine OR discovery OR breakthrough OR economic growth OR conservation OR freedom OR democracy OR humanitarian aid OR rescued";
+const CAT_RULES = [[/\b(war|wars|conflict|troops|soldiers|offensive|invasion|shelling|airstrike|battle|combat|militia)\b/i, "war_conflict", "negative"], [/\b(terror|terrorist|bombing|bomb|explosion|suicide.?bomb|isis|al.?qaeda|jihad)\b/i, "terrorism", "negative"], [/\b(earthquake|flooding|hurricane|typhoon|wildfire|tsunami|volcano|tornado|cyclone|landslide)\b/i, "natural_disaster", "negative"], [/\b(epidemic|pandemic|outbreak|virus|disease|malaria|cholera|ebola|mpox|dengue|infection)\b/i, "disease_health", "negative"], [/\b(crackdown|authoritarian|censorship|detained|imprisoned|oppression|coup|dictatorship)\b/i, "political_oppression", "negative"], [/\b(recession|hyperinflation|bankrupt|unemployment|debt.?crisis|poverty)\b/i, "economic_crisis", "negative"], [/\b(murder|shooting|gang|cartel|crime|massacre|homicide|slain|gunmen|stabbed)\b/i, "crime_violence", "negative"], [/\b(refugee|famine|starvation|displaced|food.?insecurity|humanitarian.?crisis)\b/i, "humanitarian_crisis", "negative"], [/\b(pollution|deforestation|oil.?spill|toxic|ecological.?damage|habitat.?loss)\b/i, "environmental_harm", "negative"], [/\b(peace.?deal|ceasefire|diplomacy|treaty|signed|agreement|diplomatic)\b/i, "peace_diplomacy", "positive"], [/\b(cure|vaccine|treatment.?breakthrough|drug.?approved|clinical.?trial)\b/i, "medical_breakthrough", "positive"], [/\b(gdp.?growth|economic.?growth|employment.?rise|prosperity|trade.?deal)\b/i, "economic_growth", "positive"], [/\b(conservation|renewable.?energy|clean.?energy|reforestation|carbon.?neutral)\b/i, "environmental_win", "positive"], [/\b(civil.?rights|equality|lgbtq|women.?rights|social.?reform|inclusion)\b/i, "social_progress", "positive"], [/\b(aid.?delivered|rescue|relief.?efforts|food.?aid|medical.?aid)\b/i, "humanitarian_aid", "positive"], [/\b(discovery|invention|nasa|space|quantum|scientific.?breakthrough)\b/i, "scientific_discovery", "positive"], [/\b(democracy|election|liberation|constitution|voting.?rights)\b/i, "political_freedom", "positive"]];
+function catText(text) {
+  for (const [re, cat, sent] of CAT_RULES) {
+    if (re.test(text)) return [cat, sent];
+  }
+  return [null, null];
+}
+function scoreInt(text, cat) {
+  const t = text.toLowerCase();
+  let s = 3;
+  if (/killed|dead|deaths|casualties|massacre/.test(t)) s += 3;
+  if (/hundreds.{0,10}(killed|dead|injured)|large.scale/.test(t)) s += 2;
+  if (/injured|wounded|significant|serious|outbreak/.test(t)) s += 1;
+  if (/millions.{0,10}(affected|displaced)|catastrophic|devastating/.test(t)) s += 2;
+  if (["war_conflict", "terrorism", "natural_disaster", "humanitarian_crisis"].includes(cat)) s += 1;
+  return Math.min(10, Math.max(1, s));
+}
+function locFromConcepts(concepts) {
+  if (!Array.isArray(concepts)) return null;
+  for (const c of concepts) {
+    if (c.type === "loc" && c.location && c.location.lat != null) {
+      return {
+        country: c.label && c.label.eng || "Unknown",
+        region: c.label && c.label.eng || "",
+        lat: +c.location.lat,
+        lng: +c.location.long
+      };
+    }
+  }
+  return null;
+}
+function findLocInText(text) {
+  for (const [, d] of Object.entries(CC2)) {
+    if (text.indexOf(d.n) !== -1) return {
+      country: d.n,
+      lat: d.lat,
+      lng: d.lng,
+      region: ""
+    };
+  }
+  return null;
+}
+function erToEvent(art) {
+  const text = (art.title || "") + " " + (art.body || "").slice(0, 300);
+  const [cat, sent] = catText(text);
+  if (!cat) return null;
+  const loc = locFromConcepts(art.concepts);
+  if (!loc) return null;
+  return {
+    id: art.uri || Math.random().toString(36).slice(2),
+    headline: (art.title || "").slice(0, 120),
+    description: (art.body || "").slice(0, 200),
+    country: loc.country,
+    region: loc.region,
+    lat: loc.lat,
+    lng: loc.lng,
+    category: cat,
+    sentiment: sent,
+    intensity: scoreInt(text, cat),
+    url: art.url || "",
+    source: art.source && art.source.title || "News",
+    timestamp: (art.date || "").slice(0, 10)
+  };
+}
+function ndToEvent(art) {
+  const text = (art.title || "") + " " + (art.description || "");
+  const [cat, sent] = catText(text);
+  if (!cat) return null;
+  const cc = (Array.isArray(art.country) ? art.country[0] : "").toUpperCase();
+  const loc = CC2[cc];
+  if (!loc) return null;
+  return {
+    id: art.article_id || Math.random().toString(36).slice(2),
+    headline: (art.title || "").slice(0, 120),
+    description: (art.description || "").slice(0, 200),
+    country: loc.n,
+    region: "",
+    lat: loc.lat,
+    lng: loc.lng,
+    category: cat,
+    sentiment: sent,
+    intensity: scoreInt(text, cat),
+    url: art.link || "",
+    source: art.source_id || "News",
+    timestamp: (art.pubDate || "").slice(0, 10)
+  };
+}
+function guardianToEvent(art) {
+  const text = (art.webTitle || "") + " " + (art.fields && art.fields.trailText || "");
+  const [cat, sent] = catText(text);
+  if (!cat) return null;
+  const loc = findLocInText(text);
+  if (!loc) return null;
+  return {
+    id: art.id || Math.random().toString(36).slice(2),
+    headline: (art.webTitle || "").slice(0, 120),
+    description: (art.fields && art.fields.trailText || "").slice(0, 200),
+    country: loc.country,
+    region: "",
+    lat: loc.lat,
+    lng: loc.lng,
+    category: cat,
+    sentiment: sent,
+    intensity: scoreInt(text, cat),
+    url: art.webUrl || "",
+    source: "The Guardian",
+    timestamp: (art.webPublicationDate || "").slice(0, 10)
+  };
+}
+function gnewsToEvent(art) {
+  const text = (art.title || "") + " " + (art.description || "");
+  const [cat, sent] = catText(text);
+  if (!cat) return null;
+  const loc = findLocInText(text);
+  if (!loc) return null;
+  return {
+    id: Math.random().toString(36).slice(2),
+    headline: (art.title || "").slice(0, 120),
+    description: (art.description || "").slice(0, 200),
+    country: loc.country,
+    region: "",
+    lat: loc.lat,
+    lng: loc.lng,
+    category: cat,
+    sentiment: sent,
+    intensity: scoreInt(text, cat),
+    url: art.url || "",
+    source: art.source && art.source.name || "GNews",
+    timestamp: (art.publishedAt || "").slice(0, 10)
+  };
+}
+function calcMood(evs) {
+  if (!evs.length) return 0;
+  const pos = evs.filter(e => e.sentiment === "positive").length;
+  const neg = evs.filter(e => e.sentiment === "negative").length;
+  return Math.round((pos - neg) / evs.length * 10);
+}
+function App() {
+  var _CATS$focusedCat, _CATS$focusedCat2, _CATS$focusedCat3;
+  /* ── API key (stored in sessionStorage for convenience) ── */
+  const [apiKey, setApiKey] = useState(() => {
+    try {
+      return sessionStorage.getItem("sentience_ak") || "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";
+    } catch {
+      return "";
+    }
+  });
+  const [newsApiAiKey, setNewsApiAiKey] = useState(() => {
+    try {
+      return sessionStorage.getItem("sentience_nak") || "fdc1a31c-b7a6-475d-94ce-1b7d6f5bac92";
+    } catch {
+      return "";
+    }
+  });
+  const [newsDataKey, setNewsDataKey] = useState(() => {
+    try {
+      return sessionStorage.getItem("sentience_ndk") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [guardianKey, setGuardianKey] = useState(() => {
+    try {
+      return sessionStorage.getItem("sentience_gk") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [gnewsKey, setGnewsKey] = useState(() => {
+    try {
+      return sessionStorage.getItem("sentience_gnk") || "";
+    } catch {
+      return "";
+    }
+  });
+  useEffect(() => {
+    try {
+      if (newsApiAiKey) sessionStorage.setItem("sentience_nak", newsApiAiKey);
+      if (newsDataKey) sessionStorage.setItem("sentience_ndk", newsDataKey);
+      if (guardianKey) sessionStorage.setItem("sentience_gk", guardianKey);
+      if (gnewsKey) sessionStorage.setItem("sentience_gnk", gnewsKey);
+    } catch {}
+  }, [newsApiAiKey, newsDataKey, guardianKey, gnewsKey]);
+  useEffect(() => {
+    try {
+      if (apiKey) sessionStorage.setItem("sentience_ak", apiKey);
+    } catch {}
+  }, [apiKey]);
+
+  // ← Replace this URL with your Cloudflare Worker URL after deploying
+  const PROXY_URL = "https://sentience.michaeljswift.workers.dev";
+
+  /* ── Per-category news search queries ── */
+  const GDELT_Q = {
+    war_conflict: "war military conflict offensive invasion battle troops",
+    terrorism: "terrorism terrorist bomb attack extremist",
+    natural_disaster: "earthquake flood hurricane tornado wildfire tsunami drought",
+    disease_health: "epidemic outbreak disease virus infection pandemic",
+    political_oppression: "crackdown protest censorship authoritarian arrested detained",
+    economic_crisis: "recession inflation poverty unemployment debt financial crisis",
+    crime_violence: "murder shooting violence gang crime killing",
+    humanitarian_crisis: "refugee famine displacement starvation humanitarian",
+    environmental_harm: "pollution deforestation emissions toxic contamination",
+    peace_diplomacy: "peace ceasefire treaty diplomacy agreement cooperation",
+    medical_breakthrough: "vaccine cure treatment medical breakthrough approved",
+    economic_growth: "economic growth jobs employment investment prosperity GDP",
+    environmental_win: "conservation renewable solar reforestation protected",
+    social_progress: "equality rights justice freedom reform progress",
+    humanitarian_aid: "aid relief rescue charity donation support",
+    scientific_discovery: "research discovery innovation breakthrough technology",
+    political_freedom: "democracy election voting freedom press liberation"
+  };
+  const GUARDIAN_SEC = {
+    war_conflict: "world",
+    terrorism: "world",
+    natural_disaster: "world",
+    disease_health: "science",
+    political_oppression: "world",
+    economic_crisis: "business",
+    crime_violence: "world",
+    humanitarian_crisis: "world",
+    environmental_harm: "environment",
+    peace_diplomacy: "world",
+    medical_breakthrough: "science",
+    economic_growth: "business",
+    environmental_win: "environment",
+    social_progress: "society",
+    humanitarian_aid: "world",
+    scientific_discovery: "science",
+    political_freedom: "politics"
+  };
+  const apiCall = useCallback(async body => {
+    const res = await fetch(PROXY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "(empty)");
+      throw new Error(`Proxy returned ${res.status}: ${txt.slice(0, 200)}`);
+    }
+    return res;
+  }, []);
+
+  /* ── General proxy call — routes any API through the Cloudflare Worker ── */
+  const proxyCall = useCallback(async (target, body, method = "POST", reqHeaders = {}) => {
+    const payload = JSON.stringify({
+      target,
+      method: method || "POST",
+      reqHeaders: reqHeaders || {},
+      body: body !== undefined ? body : null,
+    });
+    const res = await fetch(PROXY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(() => "(empty)");
+      throw new Error(`Proxy ${res.status}: ${t.slice(0, 400)}`);
+    }
+    return res;
+  }, []);
+  ;
+  const [ready, setReady] = useState(false);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [tab, setTab] = useState("map");
+  const [mode, setMode] = useState("both");
+  const [cats, setCats] = useState(() => Object.fromEntries(Object.keys(CATS).map(k => [k, true])));
+  const [weights, setWeights] = useState(DEFAULT_W);
+  const [tooltip, setTooltip] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [mood, setMood] = useState(null);
+  const [summary, setSummary] = useState("");
+  const [fetchedAt, setFetchedAt] = useState(null);
+  const [showFeed, setShowFeed] = useState(true);
+  const [dims, setDims] = useState({
+    w: 0,
+    h: 0
+  });
+  const mapRef = useRef(null);
+  const svgRef = useRef(null);
+  const canRef = useRef(null);
+  const projRef = useRef(null);
+  const geoRef = useRef(null);
+  const zoomRef = useRef(null);
+  const transformRef = useRef(d3.zoomIdentity);
+  const evsRef = useRef([]);
+  const [zoomK, setZoomK] = useState(1);
+  const [dragging, setDragging] = useState(false);
+  const [visibleBounds, setVBounds] = useState(null);
+  const [regionLoading, setRegLoading] = useState(false);
+  const [sources, setSources] = useState(() => Object.fromEntries(Object.keys(SOURCES).map(k => [k, true])));
+  const [eventCount, setEventCount] = useState(15);
+  const [sufPreset, setSufPreset] = useState("balanced");
+  const [posPreset, setPosPreset] = useState("balanced");
+  const [theme, setTheme] = useState("dark");
+  const themeRef = useRef("dark");
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [mobileTab, setMobileTab] = useState("map"); // map | feed | settings
+  const [showFilters, setShowFilters] = useState(false);
+  const [mobileCard, setMobileCard] = useState(null);
+  const [scanMsg, setScanMsg] = useState("");
+  const [focusedCat, setFocusedCat] = useState(null);
+
+  /* ── Fonts ── */
+  useEffect(() => {
+    const l = document.createElement("link");
+    l.rel = "stylesheet";
+    l.href = "https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap";
+    document.head.appendChild(l);
+    return () => {
+      try {
+        document.head.removeChild(l);
+      } catch (e) {}
+    };
+  }, []);
+
+  /* ── Mobile resize detection ── */
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+
+  /* ── Scan progress messages ── */
+  useEffect(() => {
+    if (!loading) {
+      if (events.length > 0) setScanMsg(`${events.length} events loaded`);else setScanMsg("");
+      return;
+    }
+    // Single-batch scan: cycle through generic messages
+    // Multi-batch scan: fetch_news sets its own per-batch message via setScanMsg directly
+    const msgs = ["Connecting to news feeds...", "Searching global sources...", "Scanning conflict zones...", "Checking disaster reports...", "Analyzing political events...", "Reviewing health data...", "Finding positive stories...", "Geolocating events...", "Scoring human impact...", "Finalizing intelligence..."];
+    let i = 0;
+    // Only start cycling if no message is already set (batched scans set their own)
+    const id = setInterval(() => {
+      setScanMsg(prev => {
+        // If the message looks like a batch progress message, don't override it
+        if (prev && prev.includes("(") && prev.includes("/")) return prev;
+        i = (i + 1) % msgs.length;
+        return msgs[i];
+      });
+    }, 1800);
+    return () => clearInterval(id);
+  }, [loading, events.length]);
+
+  /* ── Load TopoJSON + world atlas ── */
+  useEffect(() => {
+    const s = document.createElement("script");
+    s.src = TOPO_CDN;
+    s.onload = () => {
+      fetch(WORLD_URL).then(r => r.json()).then(data => {
+        geoRef.current = window.topojson.feature(data, data.objects.countries);
+        setReady(true);
+      }).catch(e => setError("Map load failed: " + e.message));
+    };
+    s.onerror = () => setError("TopoJSON library failed to load");
+    document.head.appendChild(s);
+    return () => {
+      try {
+        document.head.removeChild(s);
+      } catch (e) {}
+    };
+  }, []);
+
+  /* ── Draw SVG base map ── */
+  const renderBase = useCallback(() => {
+    if (!ready || !mapRef.current || !svgRef.current || !canRef.current) return;
+    const w = mapRef.current.clientWidth;
+    const h = mapRef.current.clientHeight;
+    if (!w || !h) return;
+    const TM = THEMES[themeRef.current];
+    const proj = d3.geoNaturalEarth1().scale(w / 6.4).translate([w / 2, h / 2]);
+    projRef.current = proj;
+    const path = d3.geoPath(proj);
+    const svg = d3.select(svgRef.current).attr("width", w).attr("height", h);
+    svg.selectAll("*").remove();
+    svg.append("rect").attr("width", w).attr("height", h).attr("fill", TM.ocean);
+    const g = svg.append("g").attr("class", "map-group");
+    const grat = d3.geoGraticule()();
+    g.append("path").datum(grat).attr("d", path).attr("fill", "none").attr("stroke", TM.graticule).attr("stroke-width", 0.5);
+    if (geoRef.current) {
+      g.selectAll(".c").data(geoRef.current.features).join("path").attr("class", "c").attr("d", path).attr("fill", TM.countryFill).attr("stroke", TM.countryStroke).attr("stroke-width", 0.35);
+    }
+    g.attr("transform", transformRef.current);
+    canRef.current.width = w;
+    canRef.current.height = h;
+    setDims({
+      w,
+      h
+    });
+  }, [ready]);
+  useEffect(() => {
+    renderBase();
+  }, [renderBase]);
+
+  /* ── Sync theme ref and redraw map when theme changes ── */
+  useEffect(() => {
+    themeRef.current = theme;
+    renderBase();
+  }, [theme, renderBase]);
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const obs = new ResizeObserver(renderBase);
+    obs.observe(mapRef.current);
+    return () => obs.disconnect();
+  }, [renderBase]);
+
+  /* ── Per-category event counts (before focusedCat filter, so badges always reflect totals) ── */
+  const catCounts = useMemo(() => {
+    const counts = {};
+    events.forEach(e => {
+      if (!cats[e.category]) return;
+      if (mode === "suffering" && e.sentiment === "positive") return;
+      if (mode === "positivity" && e.sentiment === "negative") return;
+      if (visibleBounds) {
+        if (e.lat < visibleBounds.minLat || e.lat > visibleBounds.maxLat) return;
+        if (e.lng < visibleBounds.minLng || e.lng > visibleBounds.maxLng) return;
+      }
+      counts[e.category] = (counts[e.category] || 0) + 1;
+    });
+    return counts;
+  }, [events, cats, mode, visibleBounds]);
+
+  /* ── Processed events — filtered to viewport + focusedCat when set ── */
+  const evs = useMemo(() => events.filter(e => {
+    if (!cats[e.category]) return false;
+    if (mode === "suffering" && e.sentiment === "positive") return false;
+    if (mode === "positivity" && e.sentiment === "negative") return false;
+    if (visibleBounds) {
+      if (e.lat < visibleBounds.minLat || e.lat > visibleBounds.maxLat) return false;
+      if (e.lng < visibleBounds.minLng || e.lng > visibleBounds.maxLng) return false;
+    }
+    if (focusedCat && e.category !== focusedCat) return false;
+    return true;
+  }).map(e => {
+    var _weights$e$category;
+    return {
+      ...e,
+      adj: Math.min(10, Math.max(1, e.intensity * ((_weights$e$category = weights[e.category]) !== null && _weights$e$category !== void 0 ? _weights$e$category : 7) / 7))
+    };
+  }), [events, cats, mode, weights, visibleBounds, focusedCat]);
+
+  /* ── Draw heatmap (zoom-aware) ── */
+  const drawHeatmap = useCallback(() => {
+    if (!canRef.current || !projRef.current) return;
+    const canvas = canRef.current;
+    const ctx = canvas.getContext("2d");
+    const t = transformRef.current || d3.zoomIdentity;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.transform(t.k, 0, 0, t.k, t.x, t.y); // apply zoom transform to canvas too
+
+    const shrink = Math.sqrt(t.k); // radii shrink as you zoom in → detail, not blobs
+
+    [...evsRef.current].sort((a, b) => b.adj - a.adj).forEach(ev => {
+      try {
+        const pt = projRef.current([ev.lng, ev.lat]);
+        if (!pt) return;
+        const [x, y] = pt;
+        if (isNaN(x) || isNaN(y)) return;
+        const cat = CATS[ev.category];
+        const [r, g, b] = cat ? cat.rgb : ev.sentiment === "negative" ? [255, 30, 30] : [0, 255, 120];
+        const i = ev.adj;
+        // Radius: i=1→8px, i=5→24px, i=10→44px — visible but never region-dominating
+        const radius = (4 + i * 4) / shrink;
+        const a0 = 0.15 + i / 10 * 0.35;
+        const gr = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        gr.addColorStop(0, `rgba(${r},${g},${b},${a0})`);
+        gr.addColorStop(0.3, `rgba(${r},${g},${b},${a0 * 0.65})`);
+        gr.addColorStop(0.65, `rgba(${r},${g},${b},${a0 * 0.25})`);
+        gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
+        ctx.fillStyle = gr;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        const dotR = (1.5 + i * 0.15) / shrink;
+        const ringR = (2.5 + i * 0.28) / shrink;
+        ctx.beginPath();
+        ctx.arc(x, y, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r},${g},${b},0.95)`;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, ringR, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${r},${g},${b},0.45)`;
+        ctx.lineWidth = 1 / t.k;
+        ctx.stroke();
+      } catch (_) {}
+    });
+    ctx.restore();
+  }, []);
+
+  /* ── Keep evsRef in sync; redraw whenever evs or dims change ── */
+  useEffect(() => {
+    evsRef.current = evs;
+    drawHeatmap();
+  }, [evs, dims, drawHeatmap]);
+
+  /* ── Re-render map when switching back to the map tab ── */
+  useEffect(() => {
+    if (tab === "map") {
+      const id = setTimeout(() => {
+        renderBase();
+        drawHeatmap();
+      }, 30);
+      return () => clearTimeout(id);
+    }
+  }, [tab, renderBase, drawHeatmap]);
+
+  /* ── Set up D3 zoom on SVG — canvas has pointerEvents:none so events reach SVG ── */
+  useEffect(() => {
+    if (!ready || !svgRef.current) return;
+    const computeBounds = t => {
+      if (!projRef.current || !canRef.current) return null;
+      const {
+        width: w,
+        height: h
+      } = canRef.current;
+      const corners = [[0, 0], [w, 0], [w, h], [0, h]].map(([px, py]) => projRef.current.invert([(px - t.x) / t.k, (py - t.y) / t.k])).filter(p => p && !isNaN(p[0]) && !isNaN(p[1]));
+      if (corners.length < 4) return null;
+      return {
+        minLat: Math.max(-90, Math.min(...corners.map(p => p[1]))),
+        maxLat: Math.min(90, Math.max(...corners.map(p => p[1]))),
+        minLng: Math.max(-180, Math.min(...corners.map(p => p[0]))),
+        maxLng: Math.min(180, Math.max(...corners.map(p => p[0])))
+      };
+    };
+    const zoom = d3.zoom().scaleExtent([1, 12]).on("start", () => setDragging(true)).on("zoom", event => {
+      const t = event.transform;
+      transformRef.current = t;
+      setZoomK(t.k);
+      if (svgRef.current) d3.select(svgRef.current).select(".map-group").attr("transform", t);
+      drawHeatmap();
+      // Keep visible bounds in sync while panning/zooming
+      if (t.k > 1.05) {
+        setVBounds(computeBounds(t));
+      } else {
+        setVBounds(null);
+      }
+    }).on("end", () => setDragging(false));
+    zoomRef.current = zoom;
+    d3.select(svgRef.current).call(zoom);
+    return () => d3.select(svgRef.current).on(".zoom", null);
+  }, [ready, drawHeatmap]);
+
+  /* ── Zoom helpers ── */
+  const doZoom = useCallback(factor => {
+    if (!zoomRef.current || !svgRef.current) return;
+    d3.select(svgRef.current).transition().duration(280).call(zoomRef.current.scaleBy, factor);
+  }, []);
+  const resetZoom = useCallback(() => {
+    if (!zoomRef.current || !svgRef.current) return;
+    setVBounds(null);
+    d3.select(svgRef.current).transition().duration(380).call(zoomRef.current.transform, d3.zoomIdentity);
+  }, []);
+
+  /* ── Visible geographic bounds (for region scan) ── */
+  const getVisibleBounds = useCallback(() => {
+    if (!projRef.current || !canRef.current) return null;
+    const t = transformRef.current || d3.zoomIdentity;
+    const {
+      width: w,
+      height: h
+    } = canRef.current;
+    const corners = [[0, 0], [w, 0], [w, h], [0, h]].map(([px, py]) => projRef.current.invert([(px - t.x) / t.k, (py - t.y) / t.k])).filter(p => p && !isNaN(p[0]) && !isNaN(p[1]));
+    if (!corners.length) return null;
+    return {
+      minLat: Math.max(-90, Math.min(...corners.map(p => p[1]))),
+      maxLat: Math.min(90, Math.max(...corners.map(p => p[1]))),
+      minLng: Math.max(-180, Math.min(...corners.map(p => p[0]))),
+      maxLng: Math.min(180, Math.max(...corners.map(p => p[0])))
+    };
+  }, []);
+
+  /* ── Hover (zoom-corrected) ── */
+  const onMove = useCallback(e => {
+    if (!projRef.current || !canRef.current) {
+      setTooltip(null);
+      return;
+    }
+    const rect = canRef.current.getBoundingClientRect();
+    const t = transformRef.current || d3.zoomIdentity;
+    // Convert screen coords → map-space coords
+    const mx = (e.clientX - rect.left - t.x) / t.k;
+    const my = (e.clientY - rect.top - t.y) / t.k;
+    let near = null,
+      nearD = Infinity;
+    evsRef.current.forEach(ev => {
+      try {
+        const pt = projRef.current([ev.lng, ev.lat]);
+        if (!pt) return;
+        const d = Math.hypot(mx - pt[0], my - pt[1]);
+        // Hit radius also in map-space (shrinks with zoom for precision)
+        const hit = (8 + ev.adj * 4) / Math.sqrt(t.k);
+        if (d < hit && d < nearD) {
+          near = ev;
+          nearD = d;
+        }
+      } catch (_) {}
+    });
+    setTooltip(near ? {
+      ev: near,
+      x: e.clientX,
+      y: e.clientY
+    } : null);
+  }, []);
+  const onClick = useCallback(() => {
+    if (!tooltip) return;
+    if (isMobile) {
+      setMobileCard(tooltip.ev);
+      setTooltip(null);
+    } else {
+      setDetail(prev => (prev === null || prev === void 0 ? void 0 : prev.id) === tooltip.ev.id ? null : tooltip.ev);
+    }
+  }, [tooltip, isMobile]);
+
+  /* ── Fetch region-specific events ── */
+  const fetchRegion = useCallback(async () => {
+    const bounds = getVisibleBounds();
+    if (!bounds) return;
+    if (!newsApiAiKey && !newsDataKey) {
+      setError("Add a NewsAPI.ai or NewsData.io key in Settings.");
+      return;
+    }
+    setRegLoading(true);
+    setError(null);
+    // Build keyword from center of visible area
+    const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+    const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+    const regionCC = Object.entries(CC2).find(([, v]) => Math.abs(v.lat - centerLat) < 15 && Math.abs(v.lng - centerLng) < 20);
+    const regionName = regionCC ? regionCC[1].n : "global";
+    try {
+      const allArticles = [];
+      if (newsApiAiKey) {
+        var _d$articles;
+        setScanMsg(`Scanning ${regionName}...`);
+        const res = await proxyCall("https://eventregistry.org/api/v1/article/getArticles", {
+          action: "getArticles",
+          keyword: `${regionName} (war OR attack OR crisis OR disaster OR protest OR peace OR deal OR discovery)`,
+          lang: "eng",
+          articlesCount: 30,
+          articlesSortBy: "date",
+          apiKey: newsApiAiKey
+        });
+        const d = await res.json();
+        ((d === null || d === void 0 || (_d$articles = d.articles) === null || _d$articles === void 0 ? void 0 : _d$articles.results) || []).forEach(a => {
+          const ev = erToEvent(a);
+          if (ev) allArticles.push(ev);
+        });
+      }
+      if (newsDataKey && allArticles.length < 20) {
+        const cc = regionCC ? regionCC[0].toLowerCase() : "";
+        const url = `https://newsdata.io/api/1/latest?apikey=${newsDataKey}&language=en${cc ? `&country=${cc}` : ""}&size=30`;
+        const res = await proxyCall(url, undefined, "GET");
+        const d = await res.json();
+        ((d === null || d === void 0 ? void 0 : d.results) || []).forEach(a => {
+          const ev = ndToEvent(a);
+          if (ev) allArticles.push(ev);
+        });
+      }
+      // Filter to visible bounds
+      const inView = allArticles.filter(e => e.lat >= bounds.minLat && e.lat <= bounds.maxLat && e.lng >= bounds.minLng && e.lng <= bounds.maxLng);
+      const toUse = inView.length >= 3 ? inView : allArticles; // fallback if too strict
+      setEvents(prev => {
+        const headlines = new Set(toUse.map(e => e.headline));
+        const kept = prev.filter(e => !headlines.has(e.headline));
+        return [...kept, ...toUse];
+      });
+    } catch (err) {
+      setError("Region scan error: " + err.message);
+    } finally {
+      setRegLoading(false);
+    }
+  }, [getVisibleBounds, newsApiAiKey, newsDataKey, proxyCall]);
+  const fetch_news = useCallback(async () => {
+    const hasAny = newsApiAiKey || newsDataKey || guardianKey || gnewsKey;
+    if (!hasAny) {
+      setError("Add at least one API key in Settings → API Keys to scan news.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    const allArticles = [];
+    try {
+      // ── 1. NewsAPI.ai (EventRegistry) ──────────────────────────
+      if (newsApiAiKey) {
+        var _negD$articles, _posD$articles;
+        setScanMsg("Scanning conflicts & crises (NewsAPI.ai)...");
+        const negRes = await proxyCall("https://eventregistry.org/api/v1/article/getArticles", {
+          action: "getArticles",
+          keyword: NEG_KW,
+          lang: "eng",
+          articlesCount: Math.ceil(eventCount * 0.4),
+          articlesSortBy: "date",
+          apiKey: newsApiAiKey
+        });
+        const negD = await negRes.json();
+        ((negD === null || negD === void 0 || (_negD$articles = negD.articles) === null || _negD$articles === void 0 ? void 0 : _negD$articles.results) || []).forEach(a => {
+          const ev = erToEvent(a);
+          if (ev) allArticles.push(ev);
+        });
+        setScanMsg("Scanning positive stories (NewsAPI.ai)...");
+        const posRes = await proxyCall("https://eventregistry.org/api/v1/article/getArticles", {
+          action: "getArticles",
+          keyword: POS_KW,
+          lang: "eng",
+          articlesCount: Math.ceil(eventCount * 0.25),
+          articlesSortBy: "date",
+          apiKey: newsApiAiKey
+        });
+        const posD = await posRes.json();
+        ((posD === null || posD === void 0 || (_posD$articles = posD.articles) === null || _posD$articles === void 0 ? void 0 : _posD$articles.results) || []).forEach(a => {
+          const ev = erToEvent(a);
+          if (ev) allArticles.push(ev);
+        });
+      }
+
+      // ── 2. The Guardian ─────────────────────────────────────────
+      if (guardianKey) {
+        var _gD$response;
+        setScanMsg("Scanning The Guardian...");
+        const gUrl = `https://content.guardianapis.com/search?api-key=${guardianKey}&section=world&show-fields=trailText&order-by=newest&page-size=50&q=war+OR+attack+OR+crisis+OR+disaster+OR+conflict+OR+peace+OR+election+OR+protest`;
+        const gRes = await proxyCall(gUrl, undefined, "GET");
+        const gD = await gRes.json();
+        ((gD === null || gD === void 0 || (_gD$response = gD.response) === null || _gD$response === void 0 ? void 0 : _gD$response.results) || []).forEach(a => {
+          const ev = guardianToEvent(a);
+          if (ev) allArticles.push(ev);
+        });
+      }
+
+      // ── 3. GNews ────────────────────────────────────────────────
+      if (gnewsKey) {
+        setScanMsg("Scanning GNews top stories...");
+        const gnUrl1 = `https://gnews.io/api/v4/top-headlines?token=${gnewsKey}&topic=world&lang=en&max=10`;
+        const gn1 = await proxyCall(gnUrl1, undefined, "GET");
+        const gd1 = await gn1.json();
+        ((gd1 === null || gd1 === void 0 ? void 0 : gd1.articles) || []).forEach(a => {
+          const ev = gnewsToEvent(a);
+          if (ev) allArticles.push(ev);
+        });
+        setScanMsg("Scanning GNews crisis search...");
+        const gnUrl2 = `https://gnews.io/api/v4/search?token=${gnewsKey}&q=war+conflict+attack+disaster+crisis&lang=en&max=10`;
+        const gn2 = await proxyCall(gnUrl2, undefined, "GET");
+        const gd2 = await gn2.json();
+        ((gd2 === null || gd2 === void 0 ? void 0 : gd2.articles) || []).forEach(a => {
+          const ev = gnewsToEvent(a);
+          if (ev) allArticles.push(ev);
+        });
+      }
+
+      // ── 4. NewsData.io ──────────────────────────────────────────
+      if (newsDataKey) {
+        setScanMsg("Scanning NewsData.io...");
+        const ndUrl = `https://newsdata.io/api/1/latest?apikey=${newsDataKey}&language=en&size=50`;
+        const ndRes = await proxyCall(ndUrl, undefined, "GET");
+        const ndD = await ndRes.json();
+        ((ndD === null || ndD === void 0 ? void 0 : ndD.results) || []).forEach(a => {
+          const ev = ndToEvent(a);
+          if (ev) allArticles.push(ev);
+        });
+      }
+
+      // ── Deduplicate + limit ─────────────────────────────────────
+      setScanMsg("Processing events...");
+      const seen = new Set();
+      const unique = allArticles.filter(e => {
+        const k = e.headline.slice(0, 60);
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      }).slice(0, eventCount);
+      const sources = [newsApiAiKey && "NewsAPI.ai", guardianKey && "Guardian", gnewsKey && "GNews", newsDataKey && "NewsData.io"].filter(Boolean);
+      setEvents(unique);
+      setMood(calcMood(unique));
+      setSummary(`${unique.length} events · ${sources.join(", ")}`);
+      setFetchedAt(new Date().toISOString());
+    } catch (err) {
+      setError("News fetch error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [newsApiAiKey, newsDataKey, guardianKey, gnewsKey, eventCount, proxyCall]);
+
+  /* ── Derived stats ── */
+  const T = THEMES[theme];
+  const isZoomed = zoomK > 1.05;
+  const scanBusy = isZoomed ? regionLoading : loading;
+  const scanLabel = isZoomed ? regionLoading ? "SCANNING..." : `⊕ REGION (${zoomK.toFixed(1)}×)` : loading ? "SCANNING..." : `⟳ SCAN ${eventCount}`;
+  const scanAction = isZoomed ? fetchRegion : fetch_news;
+  const negEvs = evs.filter(e => e.sentiment === "negative");
+  const posEvs = evs.filter(e => e.sentiment === "positive");
+  const avgNeg = negEvs.length ? negEvs.reduce((s, e) => s + e.adj, 0) / negEvs.length : 0;
+  const moodCol = mood === null ? T.textMuted : mood < -6 ? "#ff2020" : mood < -2 ? "#ff7700" : mood < 2 ? "#ffee44" : mood < 6 ? "#88ff44" : "#00ff88";
+  const toggleGroup = side => {
+    const keys = side === "neg" ? NEG_KEYS : POS_KEYS;
+    const allOn = keys.every(k => cats[k]);
+    setCats(p => ({
+      ...p,
+      ...Object.fromEntries(keys.map(k => [k, !allOn]))
+    }));
+  };
+  const applySufPreset = key => {
+    setSufPreset(key);
+    if (key !== "custom" && SUF_W[key]) setWeights(prev => ({
+      ...prev,
+      ...SUF_W[key]
+    }));
+  };
+  const applyPosPreset = key => {
+    setPosPreset(key);
+    if (key !== "custom" && POS_W[key]) setWeights(prev => ({
+      ...prev,
+      ...POS_W[key]
+    }));
+  };
+
+  /* ── Tooltip positioning ── */
+  const tipX = tooltip ? tooltip.x + 16 + 300 > window.innerWidth ? tooltip.x - 316 : tooltip.x + 16 : 0;
+  const tipY = tooltip ? tooltip.y + 200 > window.innerHeight ? tooltip.y - 208 : tooltip.y - 8 : 0;
+
+  /* ─────────────────────── MOBILE LAYOUT ─────────────────────── */
+  if (isMobile) return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      height: "100dvh",
+      background: T.bg,
+      fontFamily: "'Rajdhani',sans-serif",
+      color: T.text,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("header", {
+    style: {
+      background: T.panelBg,
+      borderBottom: `1px solid ${T.border}`,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "6px 12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 2,
+      color: T.text
+    }
+  }, "SENTIENCE"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 7,
+      letterSpacing: 2,
+      color: theme === "dark" ? "#3a8aff" : "#1a3a6a",
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "HUMAN IMPACT")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setTheme(t => t === "dark" ? "light" : "dark"),
+    style: {
+      background: "none",
+      border: "none",
+      color: T.accentText,
+      cursor: "pointer",
+      fontSize: 18,
+      padding: "4px",
+      lineHeight: 1,
+      flexShrink: 0
+    }
+  }, theme === "dark" ? "☀" : "🌙"), /*#__PURE__*/React.createElement("button", {
+    onClick: scanAction,
+    disabled: scanBusy,
+    style: {
+      background: scanBusy ? T.accentDim : isZoomed ? theme === "light" ? "#0a6644" : "#00aa66" : theme === "light" ? "#1a5abf" : "#2a72e0",
+      border: "none",
+      color: "#ffffff",
+      borderRadius: 6,
+      padding: "9px 16px",
+      cursor: scanBusy ? "not-allowed" : "pointer",
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 9,
+      letterSpacing: 1.5,
+      whiteSpace: "nowrap",
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      boxShadow: scanBusy ? "none" : "0 2px 8px rgba(0,0,0,0.3)",
+      flexShrink: 0,
+      minWidth: 110,
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      animation: scanBusy ? "spin 1s linear infinite" : "none",
+      fontSize: 13
+    }
+  }, isZoomed ? "⊕" : "⟳"), /*#__PURE__*/React.createElement("span", null, scanLabel))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      padding: "4px 12px 8px"
+    }
+  }, [["both", "⊕ BOTH", T.accentText, T.cardBg2, T.accentDim], ["suffering", "◉ SUFFERING", T.neg, T.modeNegBg, theme === "dark" ? "#ff3030" : "#cc2020"], ["positivity", "◉ POSITIVE", T.pos, T.modePossBg, theme === "dark" ? "#00cc66" : "#006644"]].map(([m, label, col, bg, bord]) => /*#__PURE__*/React.createElement("button", {
+    key: m,
+    onClick: () => setMode(m),
+    style: {
+      flex: 1,
+      background: mode === m ? bg : "transparent",
+      border: `1px solid ${mode === m ? bord : T.border}`,
+      color: mode === m ? col : T.textMuted,
+      borderRadius: 4,
+      padding: "5px 0",
+      cursor: "pointer",
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 8,
+      letterSpacing: 0.8,
+      textAlign: "center"
+    }
+  }, label)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflow: "hidden",
+      position: "relative",
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: mobileTab === "map" ? "flex" : "none",
+      flex: 1,
+      flexDirection: "column",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    ref: mapRef,
+    style: {
+      flex: 1,
+      position: "relative",
+      overflow: "hidden",
+      userSelect: "none",
+      WebkitUserSelect: "none"
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    ref: svgRef,
+    style: {
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      cursor: dragging ? "grabbing" : "grab"
+    },
+    onMouseMove: onMove,
+    onMouseLeave: () => setTooltip(null),
+    onClick: onClick
+  }), /*#__PURE__*/React.createElement("canvas", {
+    ref: canRef,
+    style: {
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      pointerEvents: "none"
+    }
+  }), !loading && events.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+      pointerEvents: "none"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      color: T.textDim,
+      letterSpacing: 3
+    }
+  }, "NO DATA"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: T.textDim
+    }
+  }, "Tap SCAN to load events")), loading && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: theme === "dark" ? "rgba(2,9,19,0.75)" : "rgba(240,244,248,0.8)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      color: T.accentText,
+      letterSpacing: 3,
+      animation: "pulse 1.4s ease-in-out infinite"
+    }
+  }, "SCANNING...")), error && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: 60,
+      left: 12,
+      right: 12,
+      background: T.panelBg,
+      border: `1px solid ${T.neg}`,
+      borderRadius: 6,
+      padding: "10px 12px",
+      color: T.neg,
+      fontSize: 11,
+      fontFamily: "'JetBrains Mono',monospace",
+      zIndex: 10
+    }
+  }, error), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: 10,
+      left: 12,
+      display: "flex",
+      flexDirection: "column",
+      gap: 5,
+      zIndex: 10
+    }
+  }, [["＋", () => doZoom(1.8)], ["－", () => doZoom(1 / 1.8)], ["⊙", resetZoom], ["✕", () => {
+    setEvents([]);
+    setMood(null);
+    setSummary("");
+    setFetchedAt(null);
+    setMobileCard(null);
+    setVBounds(null);
+    setFocusedCat(null);
+    resetZoom();
+  }]].map(([label, fn]) => /*#__PURE__*/React.createElement("button", {
+    key: label,
+    onClick: fn,
+    style: {
+      width: 36,
+      height: 36,
+      background: theme === "dark" ? "rgba(3,12,30,0.92)" : "rgba(255,255,255,0.92)",
+      border: `1px solid ${label === "✕" ? T.neg : T.border}`,
+      borderRadius: 6,
+      color: label === "✕" ? T.neg : T.accentText,
+      cursor: "pointer",
+      fontSize: label === "✕" ? 13 : 16,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, label))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: 10,
+      left: 56,
+      display: "flex",
+      flexDirection: "column",
+      gap: 5,
+      alignItems: "flex-start",
+      zIndex: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: theme === "dark" ? "rgba(3,12,30,0.92)" : "rgba(255,255,255,0.92)",
+      border: `1px solid ${isZoomed ? T.pos : T.border}`,
+      borderRadius: 4,
+      padding: "3px 8px",
+      fontSize: 9,
+      fontFamily: "'JetBrains Mono',monospace",
+      color: isZoomed ? T.pos : T.accentDim
+    }
+  }, zoomK.toFixed(1), "\xD7")), events.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      bottom: 14,
+      left: 12,
+      display: "flex",
+      gap: 6,
+      alignItems: "center",
+      zIndex: 10
+    }
+  }, mood !== null && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: theme === "dark" ? "rgba(3,12,30,0.9)" : "rgba(255,255,255,0.9)",
+      border: `1px solid ${T.border}`,
+      borderRadius: 4,
+      padding: "3px 8px",
+      fontSize: 11,
+      fontFamily: "'Orbitron',sans-serif",
+      fontWeight: 700,
+      color: moodCol
+    }
+  }, mood > 0 ? "+" : "", Math.round(mood)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: theme === "dark" ? "rgba(3,12,30,0.9)" : "rgba(255,255,255,0.9)",
+      border: `1px solid ${T.border}`,
+      borderRadius: 4,
+      padding: "3px 8px",
+      fontSize: 9,
+      fontFamily: "'JetBrains Mono',monospace",
+      color: T.textSec
+    }
+  }, evs.length, " events", visibleBounds ? " · REGION" : "")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowFilters(true),
+    style: {
+      position: "absolute",
+      bottom: 14,
+      right: 14,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      background: T.accentDim,
+      border: `1px solid ${T.accent}`,
+      color: "#fff",
+      fontSize: 17,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      boxShadow: "0 3px 12px rgba(0,0,0,0.3)",
+      zIndex: 10
+    }
+  }, "\u2699"), tooltip && !mobileCard && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: 10,
+      left: "50%",
+      transform: "translateX(-50%)",
+      background: T.tooltipBg,
+      border: `1px solid ${T.border}`,
+      borderRadius: 6,
+      padding: "6px 12px",
+      maxWidth: "70%",
+      pointerEvents: "none",
+      zIndex: 50,
+      boxShadow: "0 4px 16px rgba(0,0,0,0.25)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: T.text,
+      lineHeight: 1.3,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, tooltip.ev.headline), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: T.textMuted
+    }
+  }, "Tap to expand")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: mobileTab === "feed" ? "flex" : "none",
+      flex: 1,
+      flexDirection: "column",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 14px",
+      borderBottom: `1px solid ${T.border}`,
+      background: T.panelBg,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: summary ? 6 : 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      color: T.accentText,
+      letterSpacing: 2
+    }
+  }, "EVENT FEED"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center"
+    }
+  }, visibleBounds && /*#__PURE__*/React.createElement("button", {
+    onClick: resetZoom,
+    style: {
+      fontSize: 9,
+      color: T.pos,
+      border: `1px solid ${T.pos}`,
+      background: "none",
+      borderRadius: 3,
+      padding: "2px 7px",
+      cursor: "pointer",
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "\u25C9 REGION"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: T.textMuted,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, evs.length, " signals"))), summary && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textMuted,
+      lineHeight: 1.4
+    }
+  }, summary)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: "auto"
+    }
+  }, evs.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 24,
+      textAlign: "center",
+      color: T.textMuted,
+      fontSize: 13
+    }
+  }, "No events match current filters") : [...evs].sort((a, b) => b.adj - a.adj).map(ev => {
+    var _cat$label;
+    const cat = CATS[ev.category];
+    const [r, g, b2] = cat ? cat.rgb : [120, 160, 200];
+    return /*#__PURE__*/React.createElement("div", {
+      key: ev.id,
+      onClick: () => setMobileCard(ev),
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 12,
+        padding: "12px 14px",
+        borderBottom: `1px solid ${T.borderLight}`,
+        cursor: "pointer",
+        borderLeft: `3px solid rgb(${r},${g},${b2})`,
+        background: (mobileCard === null || mobileCard === void 0 ? void 0 : mobileCard.id) === ev.id ? T.cardBg2 : T.panelBg
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flexShrink: 0,
+        textAlign: "center",
+        minWidth: 34
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "'Orbitron',sans-serif",
+        fontSize: 15,
+        fontWeight: 700,
+        color: `rgb(${r},${g},${b2})`,
+        lineHeight: 1
+      }
+    }, ev.adj.toFixed(1)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 6,
+        height: 6,
+        borderRadius: "50%",
+        background: `rgb(${r},${g},${b2})`,
+        margin: "4px auto 0",
+        boxShadow: `0 0 4px rgb(${r},${g},${b2})`
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 9,
+        color: `rgb(${r},${g},${b2})`,
+        fontFamily: "'JetBrains Mono',monospace",
+        marginBottom: 3,
+        letterSpacing: 0.5
+      }
+    }, cat === null || cat === void 0 || (_cat$label = cat.label) === null || _cat$label === void 0 ? void 0 : _cat$label.toUpperCase()), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 600,
+        color: T.text,
+        lineHeight: 1.35,
+        marginBottom: 3
+      }
+    }, ev.headline), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: T.textMuted
+      }
+    }, ev.country, ev.region ? ` · ${ev.region}` : ""), ev.url && /*#__PURE__*/React.createElement("a", {
+      href: ev.url,
+      onClick: e => e.stopPropagation(),
+      target: "_blank",
+      rel: "noreferrer",
+      style: {
+        fontSize: 10,
+        color: `rgba(${r},${g},${b2},0.8)`,
+        textDecoration: "none",
+        fontFamily: "'JetBrains Mono',monospace"
+      }
+    }, "\u2197"))));
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: mobileTab === "settings" ? "flex" : "none",
+      flex: 1,
+      flexDirection: "column",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: "auto",
+      padding: "16px 14px",
+      background: T.bg
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      color: T.accentText,
+      marginBottom: 10,
+      letterSpacing: 2
+    }
+  }, "API KEYS"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginBottom: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: T.text
+    }
+  }, "NewsAPI.ai"), /*#__PURE__*/React.createElement("a", {
+    href: "https://newsapi.ai",
+    target: "_blank",
+    style: {
+      fontSize: 10,
+      color: T.accentText
+    }
+  }, "Free key \u2192")), /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: newsApiAiKey,
+    onChange: e => setNewsApiAiKey(e.target.value),
+    placeholder: "eventregistry-api-key",
+    style: {
+      width: "100%",
+      background: T.inputBg,
+      border: `1px solid ${newsApiAiKey ? "#00aa66" : T.border2}`,
+      borderRadius: 6,
+      padding: "10px 12px",
+      color: T.text,
+      fontFamily: "'JetBrains Mono',monospace",
+      fontSize: 12,
+      outline: "none"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginBottom: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: T.text
+    }
+  }, "NewsData.io"), /*#__PURE__*/React.createElement("a", {
+    href: "https://newsdata.io",
+    target: "_blank",
+    style: {
+      fontSize: 10,
+      color: T.accentText
+    }
+  }, "Free key \u2192")), /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: newsDataKey,
+    onChange: e => setNewsDataKey(e.target.value),
+    placeholder: "pub_xxxxxxxxxxxxxxxx",
+    style: {
+      width: "100%",
+      background: T.inputBg,
+      border: `1px solid ${newsDataKey ? "#00aa66" : T.border2}`,
+      borderRadius: 6,
+      padding: "10px 12px",
+      color: T.text,
+      fontFamily: "'JetBrains Mono',monospace",
+      fontSize: 12,
+      outline: "none"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginBottom: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: T.text
+    }
+  }, "The Guardian"), /*#__PURE__*/React.createElement("a", {
+    href: "https://open-platform.theguardian.com/access",
+    target: "_blank",
+    style: {
+      fontSize: 10,
+      color: T.accentText
+    }
+  }, "Free key \u2192")), /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: guardianKey,
+    onChange: e => setGuardianKey(e.target.value),
+    placeholder: "guardian-api-key",
+    style: {
+      width: "100%",
+      background: T.inputBg,
+      border: `1px solid ${guardianKey ? "#00aa66" : T.border2}`,
+      borderRadius: 6,
+      padding: "10px 12px",
+      color: T.text,
+      fontFamily: "'JetBrains Mono',monospace",
+      fontSize: 12,
+      outline: "none"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginBottom: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: T.text
+    }
+  }, "GNews"), /*#__PURE__*/React.createElement("a", {
+    href: "https://gnews.io",
+    target: "_blank",
+    style: {
+      fontSize: 10,
+      color: T.accentText
+    }
+  }, "Free key \u2192")), /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: gnewsKey,
+    onChange: e => setGnewsKey(e.target.value),
+    placeholder: "gnews-token",
+    style: {
+      width: "100%",
+      background: T.inputBg,
+      border: `1px solid ${gnewsKey ? "#00aa66" : T.border2}`,
+      borderRadius: 6,
+      padding: "10px 12px",
+      color: T.text,
+      fontFamily: "'JetBrains Mono',monospace",
+      fontSize: 12,
+      outline: "none"
+    }
+  })), !(newsApiAiKey || newsDataKey || guardianKey || gnewsKey) && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: T.neg,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "\u26A0 At least one key required"), (newsApiAiKey || newsDataKey || guardianKey || gnewsKey) && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "#00aa66",
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "\u2713 ", [newsApiAiKey && "NewsAPI.ai", guardianKey && "Guardian", gnewsKey && "GNews", newsDataKey && "NewsData.io"].filter(Boolean).join(" + "), " active")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: `1px solid ${T.border2}`,
+      margin: "12px 0"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      color: T.accentText,
+      marginBottom: 8,
+      letterSpacing: 2
+    }
+  }, "EVENT VOLUME"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      background: T.inputBg,
+      border: `1px solid ${T.border2}`,
+      borderRadius: 6,
+      padding: "10px 14px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: T.textMuted,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "5"), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: "5",
+    max: "100",
+    step: "5",
+    value: eventCount,
+    onChange: e => setEventCount(+e.target.value),
+    style: {
+      flex: 1,
+      accentColor: T.accentText
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: T.textMuted,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "100"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 17,
+      fontWeight: 700,
+      color: T.accentText,
+      minWidth: 28,
+      textAlign: "right"
+    }
+  }, eventCount)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginTop: 8,
+      flexWrap: "wrap"
+    }
+  }, [[15, "QUICK", T.textSec], [30, "STD", T.accentText], [60, "DETAIL", "#00cc88"], [100, "MAX", "#ffaa22"]].map(([v, label, col]) => /*#__PURE__*/React.createElement("button", {
+    key: v,
+    onClick: () => setEventCount(v),
+    style: {
+      background: eventCount === v ? T.cardBg2 : "transparent",
+      border: `1px solid ${eventCount === v ? col : col + "33"}`,
+      color: eventCount === v ? col : col + "88",
+      borderRadius: 4,
+      padding: "5px 10px",
+      cursor: "pointer",
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 9,
+      letterSpacing: 1
+    }
+  }, label, "\xB7", v)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: `1px solid ${T.border2}`,
+      margin: "12px 0"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      color: T.neg,
+      marginBottom: 8,
+      letterSpacing: 2
+    }
+  }, "SUFFERING FOCUS"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 6,
+      marginBottom: 12
+    }
+  }, Object.entries(SUF_PRESETS).map(([k, p]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    onClick: () => applySufPreset(k),
+    style: {
+      background: sufPreset === k ? T.cardBg2 : "transparent",
+      border: `1px solid ${sufPreset === k ? T.neg : T.neg + "30"}`,
+      color: sufPreset === k ? T.neg : T.neg + "66",
+      borderRadius: 4,
+      padding: "6px 12px",
+      cursor: "pointer",
+      fontFamily: "'Rajdhani',sans-serif",
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, p.label))), /*#__PURE__*/React.createElement(WeightGroup, {
+    keys: NEG_KEYS,
+    weights: weights,
+    setWeights: setWeights,
+    label: "",
+    labelCol: T.neg,
+    onCustomize: () => setSufPreset("custom"),
+    T: T
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: `1px solid ${T.border2}`,
+      margin: "12px 0"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      color: T.pos,
+      marginBottom: 8,
+      letterSpacing: 2
+    }
+  }, "POSITIVITY FOCUS"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 6,
+      marginBottom: 12
+    }
+  }, Object.entries(POS_PRESETS).map(([k, p]) => /*#__PURE__*/React.createElement("button", {
+    key: k,
+    onClick: () => applyPosPreset(k),
+    style: {
+      background: posPreset === k ? T.cardBg2 : "transparent",
+      border: `1px solid ${posPreset === k ? T.pos : T.pos + "30"}`,
+      color: posPreset === k ? T.pos : T.pos + "66",
+      borderRadius: 4,
+      padding: "6px 12px",
+      cursor: "pointer",
+      fontFamily: "'Rajdhani',sans-serif",
+      fontSize: 13,
+      fontWeight: 600
+    }
+  }, p.label))), /*#__PURE__*/React.createElement(WeightGroup, {
+    keys: POS_KEYS,
+    weights: weights,
+    setWeights: setWeights,
+    label: "",
+    labelCol: T.pos,
+    onCustomize: () => setPosPreset("custom"),
+    T: T
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: `1px solid ${T.border2}`,
+      margin: "12px 0"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      color: T.accentText,
+      marginBottom: 10,
+      letterSpacing: 2
+    }
+  }, "APPEARANCE"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, [["dark", "🌙 DARK"], ["light", "☀ LIGHT"]].map(([t, label]) => /*#__PURE__*/React.createElement("button", {
+    key: t,
+    onClick: () => setTheme(t),
+    style: {
+      flex: 1,
+      padding: "11px",
+      background: theme === t ? T.cardBg2 : "transparent",
+      border: `1px solid ${theme === t ? T.accentDim : T.border}`,
+      color: theme === t ? T.accentText : T.textMuted,
+      borderRadius: 6,
+      cursor: "pointer",
+      fontFamily: "'Rajdhani',sans-serif",
+      fontSize: 14,
+      fontWeight: 600
+    }
+  }, label)))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setWeights(DEFAULT_W);
+      setSufPreset("balanced");
+      setPosPreset("balanced");
+    },
+    style: {
+      width: "100%",
+      background: T.cardBg,
+      border: `1px solid ${T.accentDim}`,
+      color: T.accentText,
+      borderRadius: 6,
+      padding: "11px",
+      cursor: "pointer",
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 10,
+      letterSpacing: 2
+    }
+  }, "RESET WEIGHTS TO DEFAULT")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: scanMsg ? 22 : 0,
+      overflow: "hidden",
+      transition: "height 0.3s ease",
+      background: loading ? theme === "dark" ? "#041428" : "#e8f4ff" : T.cardBg,
+      borderTop: `1px solid ${loading ? T.accentDim + "66" : T.borderLight}`,
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      padding: scanMsg ? "0 14px" : 0,
+      flexShrink: 0
+    }
+  }, loading && /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 6,
+      height: 6,
+      borderRadius: "50%",
+      background: T.accentText,
+      flexShrink: 0,
+      animation: "statusPulse 1s ease-in-out infinite"
+    }
+  }), !loading && scanMsg && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: T.pos,
+      fontSize: 10,
+      flexShrink: 0
+    }
+  }, "\u2713"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontFamily: "'JetBrains Mono',monospace",
+      color: loading ? T.accentText : T.pos,
+      letterSpacing: 0.5,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, scanMsg)), /*#__PURE__*/React.createElement("nav", {
+    style: {
+      height: 58,
+      background: T.panelBg,
+      borderTop: `1px solid ${T.border}`,
+      display: "flex",
+      flexShrink: 0
+    }
+  }, [["map", "🗺", "MAP", null], ["feed", "📋", "FEED", evs.length > 0 ? evs.length : null], ["settings", "⚙", "SETTINGS", null]].map(([t, icon, label, badge]) => /*#__PURE__*/React.createElement("button", {
+    key: t,
+    onClick: () => {
+      setMobileTab(t);
+      if (t !== "map") setMobileCard(null);
+    },
+    style: {
+      flex: 1,
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 2,
+      borderTop: `2px solid ${mobileTab === t ? T.accentText : "transparent"}`,
+      padding: "6px 0"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 20,
+      lineHeight: 1,
+      position: "relative"
+    }
+  }, icon, badge && /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: -3,
+      right: -10,
+      background: T.neg,
+      color: "#fff",
+      borderRadius: 10,
+      fontSize: 8,
+      padding: "1px 4px",
+      fontFamily: "'JetBrains Mono',monospace",
+      lineHeight: 1.5
+    }
+  }, badge > 99 ? "99+" : badge)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 8,
+      fontFamily: "'Orbitron',sans-serif",
+      letterSpacing: 1,
+      color: mobileTab === t ? T.accentText : T.textMuted
+    }
+  }, label)))), mobileCard && (_cat$label2 => {
+    const ev = mobileCard;
+    const cat = CATS[ev.category];
+    const [r, g, b] = cat ? cat.rgb : [70, 120, 180];
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "fixed",
+        bottom: 58,
+        left: 0,
+        right: 0,
+        zIndex: 200,
+        background: T.tooltipBg,
+        borderTop: `2px solid rgb(${r},${g},${b})`,
+        borderRadius: "14px 14px 0 0",
+        maxHeight: "48vh",
+        overflowY: "auto",
+        boxShadow: "0 -8px 30px rgba(0,0,0,0.22)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "14px 16px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        marginBottom: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        paddingRight: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 9,
+        color: `rgb(${r},${g},${b})`,
+        letterSpacing: 1.5,
+        fontFamily: "'JetBrains Mono',monospace",
+        marginBottom: 4
+      }
+    }, cat === null || cat === void 0 || (_cat$label2 = cat.label) === null || _cat$label2 === void 0 ? void 0 : _cat$label2.toUpperCase(), " \xB7 INT ", ev.adj.toFixed(1)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 15,
+        fontWeight: 700,
+        color: T.text,
+        lineHeight: 1.35
+      }
+    }, ev.headline)), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setMobileCard(null),
+      style: {
+        background: "none",
+        border: "none",
+        color: T.textMuted,
+        fontSize: 24,
+        cursor: "pointer",
+        lineHeight: 1,
+        padding: 0,
+        flexShrink: 0
+      }
+    }, "\xD7")), ev.description && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: T.textSec,
+        lineHeight: 1.6,
+        marginBottom: 10
+      }
+    }, ev.description), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: ev.url ? 12 : 0
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: T.textMuted
+      }
+    }, ev.country, ev.region ? ` · ${ev.region}` : ""), ev.timestamp && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: T.textMuted,
+        fontFamily: "'JetBrains Mono',monospace"
+      }
+    }, ev.timestamp)), ev.url && /*#__PURE__*/React.createElement("a", {
+      href: ev.url,
+      target: "_blank",
+      rel: "noreferrer",
+      style: {
+        display: "block",
+        textAlign: "center",
+        padding: "11px",
+        background: T.cardBg,
+        border: `1px solid rgba(${r},${g},${b},0.5)`,
+        borderRadius: 8,
+        color: `rgb(${r},${g},${b})`,
+        fontSize: 11,
+        textDecoration: "none",
+        letterSpacing: 1.5,
+        fontFamily: "'Orbitron',sans-serif"
+      }
+    }, "\u2197 READ SOURCE ARTICLE")));
+  })(), showFilters && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 300,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "flex-end"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: () => setShowFilters(false),
+    style: {
+      flex: 1,
+      background: "rgba(0,0,0,0.45)"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: T.panelBg,
+      borderRadius: "16px 16px 0 0",
+      maxHeight: "70vh",
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "12px 16px 10px",
+      borderBottom: `1px solid ${T.border}`,
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      color: T.accentText,
+      letterSpacing: 2
+    }
+  }, "CATEGORY FILTERS"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowFilters(false),
+    style: {
+      background: T.accentDim,
+      border: "none",
+      color: "#fff",
+      borderRadius: 4,
+      padding: "7px 16px",
+      cursor: "pointer",
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 9,
+      letterSpacing: 1.5
+    }
+  }, "DONE")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowY: "auto",
+      padding: "12px 12px",
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: T.neg,
+      letterSpacing: 2,
+      marginBottom: 8,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "\u25C8 SUFFERING"), NEG_KEYS.map(k => {
+    const cat = CATS[k];
+    const [r, g, b] = cat.rgb;
+    const on = cats[k];
+    return /*#__PURE__*/React.createElement("label", {
+      key: k,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 10px",
+        marginBottom: 5,
+        borderRadius: 8,
+        cursor: "pointer",
+        background: on ? T.cardBg : T.bg,
+        border: `1px solid ${on ? T.border : "transparent"}`
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: on,
+      onChange: e => setCats(p => ({
+        ...p,
+        [k]: e.target.checked
+      })),
+      style: {
+        display: "none"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 10,
+        height: 10,
+        borderRadius: "50%",
+        background: `rgb(${r},${g},${b})`,
+        flexShrink: 0,
+        boxShadow: on ? `0 0 5px rgb(${r},${g},${b})` : "none"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 14,
+        color: on ? T.text : T.textMuted,
+        fontWeight: on ? 600 : 400,
+        flex: 1
+      }
+    }, cat.label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: on ? `rgb(${r},${g},${b})` : T.textDim
+      }
+    }, "\u25CF"));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: `1px solid ${T.border}`,
+      margin: "10px 0"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: T.pos,
+      letterSpacing: 2,
+      marginBottom: 8,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "\u25C8 POSITIVITY"), POS_KEYS.map(k => {
+    const cat = CATS[k];
+    const [r, g, b] = cat.rgb;
+    const on = cats[k];
+    return /*#__PURE__*/React.createElement("label", {
+      key: k,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "10px 10px",
+        marginBottom: 5,
+        borderRadius: 8,
+        cursor: "pointer",
+        background: on ? T.cardBg : T.bg,
+        border: `1px solid ${on ? T.border : "transparent"}`
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: on,
+      onChange: e => setCats(p => ({
+        ...p,
+        [k]: e.target.checked
+      })),
+      style: {
+        display: "none"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 10,
+        height: 10,
+        borderRadius: "50%",
+        background: `rgb(${r},${g},${b})`,
+        flexShrink: 0,
+        boxShadow: on ? `0 0 5px rgb(${r},${g},${b})` : "none"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 14,
+        color: on ? T.text : T.textMuted,
+        fontWeight: on ? 600 : 400,
+        flex: 1
+      }
+    }, cat.label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: on ? `rgb(${r},${g},${b})` : T.textDim
+      }
+    }, "\u25CF"));
+  })))), /*#__PURE__*/React.createElement("style", null, `
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        @keyframes statusPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.7)}}
+        *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+      `));
+
+  /* ─────────────────────── RENDER ─────────────────────── */
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      height: "100vh",
+      background: T.bg,
+      fontFamily: "'Rajdhani',sans-serif",
+      color: T.text,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("header", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 16,
+      padding: "8px 18px",
+      borderBottom: `1px solid ${T.border}`,
+      background: T.panelBg,
+      flexShrink: 0,
+      height: 54,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 14,
+      fontWeight: 700,
+      letterSpacing: 3,
+      color: T.text
+    }
+  }, "SENTIENCE"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: 3,
+      color: theme === "dark" ? "#3a8aff" : "#1a3a6a",
+      fontFamily: "'JetBrains Mono',monospace",
+      marginTop: 1
+    }
+  }, "GLOBAL HUMAN IMPACT MONITOR")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 1,
+      height: 30,
+      background: T.border
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4
+    }
+  }, ["map", "settings"].map(t => /*#__PURE__*/React.createElement("button", {
+    key: t,
+    onClick: () => setTab(t),
+    style: {
+      background: tab === t ? T.cardBg2 : "transparent",
+      border: `1px solid ${tab === t ? T.accentDim : T.border}`,
+      color: tab === t ? T.accentText : T.textMuted,
+      borderRadius: 4,
+      padding: "5px 14px",
+      cursor: "pointer",
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 9,
+      letterSpacing: 2,
+      textTransform: "uppercase"
+    }
+  }, t))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 1,
+      height: 30,
+      background: T.border
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4
+    }
+  }, [["both", "⊕ BOTH", T.accentText, T.cardBg2, T.accentDim], ["suffering", "◉ SUFFERING", T.neg, T.modeNegBg, theme === "dark" ? "#ff3030" : "#cc2020"], ["positivity", "◉ POSITIVE", T.pos, T.modePossBg, theme === "dark" ? "#00cc66" : "#006644"]].map(([m, label, col, bg, bord]) => /*#__PURE__*/React.createElement("button", {
+    key: m,
+    onClick: () => setMode(m),
+    style: {
+      background: mode === m ? bg : "transparent",
+      border: `1px solid ${mode === m ? bord : T.border}`,
+      color: mode === m ? col : T.textMuted,
+      borderRadius: 4,
+      padding: "5px 10px",
+      cursor: "pointer",
+      fontFamily: "'Rajdhani',sans-serif",
+      fontSize: 12,
+      fontWeight: 600,
+      letterSpacing: 1
+    }
+  }, label))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginLeft: "auto",
+      display: "flex",
+      alignItems: "center",
+      gap: 14
+    }
+  }, mood !== null && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: T.textMuted,
+      letterSpacing: 1.5,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "MOOD"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 18,
+      fontWeight: 700,
+      color: moodCol
+    }
+  }, mood > 0 ? "+" : "", Math.round(mood))), evs.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 12,
+      fontSize: 11,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: T.neg
+    }
+  }, negEvs.length, " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: T.textMuted
+    }
+  }, "NEG")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: T.pos
+    }
+  }, posEvs.length, " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: T.textMuted
+    }
+  }, "POS")), negEvs.length > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#ff9944"
+    }
+  }, "AVG ", avgNeg.toFixed(1), " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: T.textMuted
+    }
+  }, "INT"))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setTheme(t => t === "dark" ? "light" : "dark"),
+    style: {
+      background: T.cardBg,
+      border: `1px solid ${T.border}`,
+      borderRadius: 4,
+      padding: "5px 10px",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      color: T.accentText,
+      fontSize: 15,
+      lineHeight: 1
+    }
+  }, /*#__PURE__*/React.createElement("span", null, theme === "dark" ? "☀" : "🌙"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 8,
+      letterSpacing: 1,
+      color: T.textMuted
+    }
+  }, theme === "dark" ? "LIGHT" : "DARK")), /*#__PURE__*/React.createElement("button", {
+    onClick: scanAction,
+    disabled: scanBusy,
+    style: {
+      background: scanBusy ? T.cardBg : isZoomed ? theme === "light" ? "#0a6644" : "#00aa66" : T.cardBg2,
+      border: `1px solid ${scanBusy ? T.border : isZoomed ? T.pos : T.accentDim}`,
+      color: scanBusy ? T.textMuted : isZoomed ? T.pos : T.accentText,
+      borderRadius: 4,
+      padding: "7px 16px",
+      cursor: scanBusy ? "not-allowed" : "pointer",
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 9,
+      letterSpacing: 2,
+      fontWeight: 600,
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      transition: "all 0.2s"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      animation: scanBusy ? "spin 1s linear infinite" : "none",
+      fontSize: 11
+    }
+  }, isZoomed ? "⊕" : "⟳"), scanLabel))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      display: "flex",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: tab === "map" ? "contents" : "none"
+    }
+  }, /*#__PURE__*/React.createElement("aside", {
+    style: {
+      width: 212,
+      flexShrink: 0,
+      borderRight: `1px solid ${T.border}`,
+      background: T.panelBg,
+      overflowY: "auto",
+      padding: "10px 0"
+    }
+  }, events.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "0 10px 10px",
+      borderBottom: `1px solid ${T.borderLight}`,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: T.textMuted,
+      letterSpacing: 2,
+      marginBottom: 8,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "ACTIVE SIGNALS"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 6,
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement(Stat, {
+    val: negEvs.length,
+    label: "SUFFERING",
+    col: T.neg,
+    bg: T.negBg,
+    border: T.neg
+  }), /*#__PURE__*/React.createElement(Stat, {
+    val: posEvs.length,
+    label: "POSITIVE",
+    col: T.pos,
+    bg: T.posBg,
+    border: T.pos
+  })), /*#__PURE__*/React.createElement(Stat, {
+    val: events.length,
+    label: "TOTAL EVENTS",
+    col: T.accentText,
+    bg: T.cardBg,
+    border: T.accentDim,
+    full: true
+  })), focusedCat && /*#__PURE__*/React.createElement("div", {
+    style: {
+      margin: "0 10px 8px",
+      background: T.cardBg2,
+      border: `1px solid ${T.border}`,
+      borderRadius: 4,
+      padding: "6px 8px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 7,
+      height: 7,
+      borderRadius: "50%",
+      flexShrink: 0,
+      background: `rgb(${(((_CATS$focusedCat = CATS[focusedCat]) === null || _CATS$focusedCat === void 0 ? void 0 : _CATS$focusedCat.rgb) || [70, 120, 180]).join(",")})`,
+      boxShadow: `0 0 4px rgb(${(((_CATS$focusedCat2 = CATS[focusedCat]) === null || _CATS$focusedCat2 === void 0 ? void 0 : _CATS$focusedCat2.rgb) || [70, 120, 180]).join(",")})`
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: T.text,
+      fontWeight: 600,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, (_CATS$focusedCat3 = CATS[focusedCat]) === null || _CATS$focusedCat3 === void 0 ? void 0 : _CATS$focusedCat3.label)), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setFocusedCat(null),
+    style: {
+      background: "none",
+      border: "none",
+      color: T.textMuted,
+      cursor: "pointer",
+      fontSize: 14,
+      padding: 0,
+      lineHeight: 1,
+      flexShrink: 0
+    }
+  }, "\xD7")), /*#__PURE__*/React.createElement(CatGroup, {
+    keys: NEG_KEYS,
+    cats: cats,
+    setCats: setCats,
+    onToggleAll: () => toggleGroup("neg"),
+    label: "SUFFERING",
+    labelCol: T.neg,
+    T: T,
+    catCounts: catCounts,
+    focusedCat: focusedCat,
+    onFocusCat: setFocusedCat
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: `1px solid ${T.borderLight}`,
+      margin: "4px 0"
+    }
+  }), /*#__PURE__*/React.createElement(CatGroup, {
+    keys: POS_KEYS,
+    cats: cats,
+    setCats: setCats,
+    onToggleAll: () => toggleGroup("pos"),
+    label: "POSITIVITY",
+    labelCol: T.pos,
+    T: T,
+    catCounts: catCounts,
+    focusedCat: focusedCat,
+    onFocusCat: setFocusedCat
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    ref: mapRef,
+    style: {
+      flex: 1,
+      position: "relative",
+      overflow: "hidden",
+      minHeight: 160,
+      userSelect: "none",
+      WebkitUserSelect: "none"
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    ref: svgRef,
+    style: {
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      cursor: dragging ? "grabbing" : "grab"
+    },
+    onMouseMove: onMove,
+    onMouseLeave: () => setTooltip(null),
+    onClick: onClick
+  }), /*#__PURE__*/React.createElement("canvas", {
+    ref: canRef,
+    style: {
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      pointerEvents: "none"
+    }
+  }), !loading && events.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 12,
+      pointerEvents: "none"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 12,
+      color: T.textDim,
+      letterSpacing: 4
+    }
+  }, "NO ACTIVE INTELLIGENCE"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textDim,
+      letterSpacing: 1
+    }
+  }, "Click SCAN to load real-time global event data"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: T.textDim,
+      letterSpacing: 1,
+      marginTop: 4
+    }
+  }, "Scroll to zoom \xB7 Drag to pan \xB7 Zoom in \u2192 button scans that region")), loading && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 14,
+      background: theme === "dark" ? "rgba(2,9,19,0.75)" : "rgba(240,244,248,0.8)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 12,
+      color: T.accentText,
+      letterSpacing: 4,
+      animation: "pulse 1.4s ease-in-out infinite"
+    }
+  }, "SCANNING GLOBAL FEEDS"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, ["WAR ZONES", "DISASTERS", "POLITICS", "HEALTH", "ECONOMICS"].map(l => /*#__PURE__*/React.createElement("span", {
+    key: l,
+    style: {
+      fontSize: 9,
+      color: T.textMuted,
+      border: `1px solid ${T.border}`,
+      borderRadius: 3,
+      padding: "3px 7px",
+      fontFamily: "'JetBrains Mono',monospace",
+      letterSpacing: 1
+    }
+  }, l)))), error && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      bottom: 20,
+      left: "50%",
+      transform: "translateX(-50%)",
+      background: T.panelBg,
+      border: `1px solid ${T.neg}`,
+      borderRadius: 4,
+      padding: "10px 16px",
+      color: T.neg,
+      fontSize: 11,
+      maxWidth: 460,
+      textAlign: "center",
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, error), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      bottom: 14,
+      right: 14,
+      background: theme === "dark" ? "rgba(3,12,30,0.92)" : "rgba(255,255,255,0.92)",
+      border: `1px solid ${T.border}`,
+      borderRadius: 4,
+      padding: "8px 12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 8,
+      color: T.textMuted,
+      letterSpacing: 2,
+      marginBottom: 6,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "INTENSITY"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-end",
+      gap: 5
+    }
+  }, [1, 3, 5, 7, 10].map(i => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 3
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: i * 2.5,
+      height: i * 2.5,
+      borderRadius: "50%",
+      background: `rgba(255,60,60,${0.15 + i / 13})`
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 8,
+      color: T.textMuted,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, i))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      bottom: 14,
+      left: 14,
+      background: theme === "dark" ? "rgba(3,12,30,0.92)" : "rgba(255,255,255,0.92)",
+      border: `1px solid ${T.border}`,
+      borderRadius: 4,
+      padding: "8px 12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 8,
+      color: T.textMuted,
+      letterSpacing: 2,
+      marginBottom: 5,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "LEGEND"), [["Human Suffering", "255,40,40"], ["Human Positivity", "0,180,100"]].map(([l, c]) => /*#__PURE__*/React.createElement("div", {
+    key: l,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 3
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 10,
+      height: 10,
+      borderRadius: "50%",
+      background: `rgba(${c},0.8)`,
+      boxShadow: `0 0 4px rgb(${c})`
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: T.textSec
+    }
+  }, l)))), fetchedAt && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: 10,
+      right: 14,
+      fontSize: 9,
+      color: T.textDim,
+      fontFamily: "'JetBrains Mono',monospace",
+      letterSpacing: 1
+    }
+  }, new Date(fetchedAt).toLocaleString()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: 10,
+      left: 14,
+      display: "flex",
+      flexDirection: "column",
+      gap: 4
+    }
+  }, [["＋", () => doZoom(1.8)], ["－", () => doZoom(1 / 1.8)], ["⊙", resetZoom], ["✕", () => {
+    setEvents([]);
+    setMood(null);
+    setSummary("");
+    setFetchedAt(null);
+    setDetail(null);
+    setTooltip(null);
+    setVBounds(null);
+    setFocusedCat(null);
+    resetZoom();
+  }]].map(([label, fn]) => /*#__PURE__*/React.createElement("button", {
+    key: label,
+    onClick: fn,
+    title: label === "✕" ? "Clear all events" : label === "⊙" ? "Reset zoom" : label === "＋" ? "Zoom in" : "Zoom out",
+    style: {
+      width: 30,
+      height: 30,
+      background: theme === "dark" ? "rgba(3,12,30,0.92)" : "rgba(255,255,255,0.92)",
+      border: `1px solid ${label === "✕" ? T.neg : T.border}`,
+      borderRadius: 4,
+      color: label === "✕" ? T.neg : T.accentText,
+      cursor: "pointer",
+      fontSize: label === "✕" ? 12 : 14,
+      fontFamily: "'Orbitron',sans-serif",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      lineHeight: 1
+    }
+  }, label))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: 10,
+      left: 54,
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: theme === "dark" ? "rgba(3,12,30,0.92)" : "rgba(255,255,255,0.92)",
+      border: `1px solid ${isZoomed ? T.pos : T.border}`,
+      borderRadius: 4,
+      padding: "4px 8px",
+      fontSize: 9,
+      fontFamily: "'JetBrains Mono',monospace",
+      color: isZoomed ? T.pos : T.accentDim,
+      letterSpacing: 1
+    }
+  }, zoomK.toFixed(1), "\xD7"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: `1px solid ${T.border}`,
+      background: T.panelBg,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowFeed(p => !p),
+    style: {
+      width: "100%",
+      background: "none",
+      border: "none",
+      color: T.textSec,
+      padding: "5px 14px",
+      cursor: "pointer",
+      fontSize: 10,
+      textAlign: "left",
+      fontFamily: "'JetBrains Mono',monospace",
+      letterSpacing: 1,
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: T.accentDim
+    }
+  }, showFeed ? "▾" : "▴"), /*#__PURE__*/React.createElement("span", null, "EVENT FEED"), evs.length > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: T.textMuted
+    }
+  }, "(", evs.length, " SIGNALS)"), visibleBounds && /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: T.pos,
+      letterSpacing: 1.5,
+      fontSize: 9
+    }
+  }, "\u25C9 REGION VIEW"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: T.textMuted,
+      fontSize: 9
+    }
+  }, evs.length, " of ", events.length, " events"), /*#__PURE__*/React.createElement("button", {
+    onClick: e => {
+      e.stopPropagation();
+      resetZoom();
+    },
+    style: {
+      background: "none",
+      border: `1px solid ${T.border}`,
+      borderRadius: 3,
+      color: T.textMuted,
+      fontSize: 8,
+      padding: "1px 6px",
+      cursor: "pointer",
+      fontFamily: "'Orbitron',sans-serif",
+      letterSpacing: 1
+    }
+  }, "SHOW ALL")), !visibleBounds && summary && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      color: T.textMuted,
+      maxWidth: 500,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      fontSize: 9
+    }
+  }, summary)), showFeed && /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxHeight: 240,
+      overflowY: "auto",
+      borderTop: `1px solid ${T.borderLight}`
+    }
+  }, evs.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: 20,
+      color: T.textMuted,
+      fontSize: 11,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "NO EVENTS MATCH ACTIVE FILTERS") : [...evs].sort((a, b) => b.adj - a.adj).map(ev => {
+    var _cat$label3;
+    const cat = CATS[ev.category];
+    const [r, g, b2] = cat ? cat.rgb : [120, 160, 200];
+    const sel = (detail === null || detail === void 0 ? void 0 : detail.id) === ev.id;
+    return /*#__PURE__*/React.createElement("div", {
+      key: ev.id,
+      onClick: e => {
+        e.stopPropagation();
+        setDetail(sel ? null : ev);
+      },
+      style: {
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 12,
+        padding: "9px 14px",
+        cursor: "pointer",
+        borderBottom: `1px solid ${T.borderLight}`,
+        background: sel ? T.cardBg2 : T.panelBg,
+        borderLeft: `3px solid ${sel ? `rgb(${r},${g},${b2})` : T.panelBg}`,
+        transition: "background 0.12s"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flexShrink: 0,
+        width: 34,
+        textAlign: "center",
+        paddingTop: 1
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "'Orbitron',sans-serif",
+        fontSize: 13,
+        fontWeight: 700,
+        color: `rgb(${r},${g},${b2})`,
+        lineHeight: 1
+      }
+    }, ev.adj.toFixed(1)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 6,
+        height: 6,
+        borderRadius: "50%",
+        background: `rgb(${r},${g},${b2})`,
+        margin: "3px auto 0",
+        boxShadow: `0 0 4px rgb(${r},${g},${b2})`
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "baseline",
+        gap: 8,
+        marginBottom: 2
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        color: `rgb(${r},${g},${b2})`,
+        fontFamily: "'JetBrains Mono',monospace",
+        letterSpacing: 0.5,
+        flexShrink: 0
+      }
+    }, cat === null || cat === void 0 || (_cat$label3 = cat.label) === null || _cat$label3 === void 0 ? void 0 : _cat$label3.toUpperCase()), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: T.textMuted,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, ev.country, ev.region ? ` · ${ev.region}` : "")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        fontWeight: 600,
+        color: T.text,
+        lineHeight: 1.35,
+        marginBottom: 2
+      }
+    }, ev.headline), ev.url ? /*#__PURE__*/React.createElement("a", {
+      href: ev.url,
+      onClick: e => e.stopPropagation(),
+      target: "_blank",
+      rel: "noreferrer",
+      style: {
+        fontSize: 9,
+        color: `rgba(${r},${g},${b2},0.7)`,
+        textDecoration: "none",
+        fontFamily: "'JetBrains Mono',monospace"
+      }
+    }, "\u2197 ", ev.source || "SOURCE") : /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        color: T.textMuted,
+        fontFamily: "'JetBrains Mono',monospace"
+      }
+    }, ev.source || "")));
+  }))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: tab === "settings" ? "flex" : "none",
+      flex: 1,
+      overflowY: "auto",
+      padding: 28,
+      background: T.bg
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxWidth: 720,
+      display: "flex",
+      flexDirection: "column",
+      gap: 32,
+      width: "100%"
+    }
+  }, /*#__PURE__*/React.createElement("section", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 15,
+      fontWeight: 700,
+      color: T.accentText,
+      marginBottom: 4,
+      letterSpacing: 2
+    }
+  }, "API KEYS"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: T.textSec,
+      marginBottom: 16,
+      lineHeight: 1.6
+    }
+  }, "Connect free news APIs to scan without Anthropic credits. Both can be used simultaneously for maximum coverage."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 16,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: T.text
+    }
+  }, "NewsAPI.ai"), /*#__PURE__*/React.createElement("a", {
+    href: "https://newsapi.ai",
+    target: "_blank",
+    style: {
+      fontSize: 10,
+      color: T.accentText,
+      textDecoration: "none"
+    }
+  }, "Get free key \u2192")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textMuted,
+      marginBottom: 8
+    }
+  }, "2,000 searches/month \xB7 Best geodata \xB7 150k sources"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: newsApiAiKey,
+    onChange: e => setNewsApiAiKey(e.target.value),
+    placeholder: "eventregistry-key",
+    style: {
+      flex: 1,
+      background: T.inputBg,
+      border: `1px solid ${newsApiAiKey ? "#00aa66" : T.border2}`,
+      borderRadius: 4,
+      padding: "9px 10px",
+      color: T.text,
+      fontFamily: "'JetBrains Mono',monospace",
+      fontSize: 11,
+      outline: "none"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: newsApiAiKey ? "#00aa66" : T.textDim,
+      fontSize: 16
+    }
+  }, newsApiAiKey ? "✓" : "○"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: T.text
+    }
+  }, "NewsData.io"), /*#__PURE__*/React.createElement("a", {
+    href: "https://newsdata.io",
+    target: "_blank",
+    style: {
+      fontSize: 10,
+      color: T.accentText,
+      textDecoration: "none"
+    }
+  }, "Get free key \u2192")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textMuted,
+      marginBottom: 8
+    }
+  }, "200 credits/day \xB7 84k sources \xB7 Global reach"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: newsDataKey,
+    onChange: e => setNewsDataKey(e.target.value),
+    placeholder: "pub_xxxxxxxxxxxxxxxx",
+    style: {
+      flex: 1,
+      background: T.inputBg,
+      border: `1px solid ${newsDataKey ? "#00aa66" : T.border2}`,
+      borderRadius: 4,
+      padding: "9px 10px",
+      color: T.text,
+      fontFamily: "'JetBrains Mono',monospace",
+      fontSize: 11,
+      outline: "none"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: newsDataKey ? "#00aa66" : T.textDim,
+      fontSize: 16
+    }
+  }, newsDataKey ? "✓" : "○")))), !newsApiAiKey && !newsDataKey && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.neg,
+      fontFamily: "'JetBrains Mono',monospace",
+      background: T.negBg,
+      border: `1px solid ${T.neg}44`,
+      borderRadius: 4,
+      padding: "8px 12px"
+    }
+  }, "\u26A0 Add at least one API key above to enable news scanning"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 16,
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: T.text
+    }
+  }, "The Guardian"), /*#__PURE__*/React.createElement("a", {
+    href: "https://open-platform.theguardian.com/access",
+    target: "_blank",
+    style: {
+      fontSize: 10,
+      color: T.accentText,
+      textDecoration: "none"
+    }
+  }, "Free key \u2192")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textMuted,
+      marginBottom: 8
+    }
+  }, "5,000 req/day free \xB7 World-class journalism \xB7 Global coverage"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: guardianKey,
+    onChange: e => setGuardianKey(e.target.value),
+    placeholder: "your-guardian-key",
+    style: {
+      flex: 1,
+      background: T.inputBg,
+      border: `1px solid ${guardianKey ? "#00aa66" : T.border2}`,
+      borderRadius: 4,
+      padding: "9px 10px",
+      color: T.text,
+      fontFamily: "'JetBrains Mono',monospace",
+      fontSize: 11,
+      outline: "none"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: guardianKey ? "#00aa66" : T.textDim,
+      fontSize: 16
+    }
+  }, guardianKey ? "✓" : "○"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: T.text
+    }
+  }, "GNews"), /*#__PURE__*/React.createElement("a", {
+    href: "https://gnews.io",
+    target: "_blank",
+    style: {
+      fontSize: 10,
+      color: T.accentText,
+      textDecoration: "none"
+    }
+  }, "Free key \u2192")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textMuted,
+      marginBottom: 8
+    }
+  }, "100 req/day free \xB7 60k sources \xB7 Simple & fast"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: gnewsKey,
+    onChange: e => setGnewsKey(e.target.value),
+    placeholder: "your-gnews-token",
+    style: {
+      flex: 1,
+      background: T.inputBg,
+      border: `1px solid ${gnewsKey ? "#00aa66" : T.border2}`,
+      borderRadius: 4,
+      padding: "9px 10px",
+      color: T.text,
+      fontFamily: "'JetBrains Mono',monospace",
+      fontSize: 11,
+      outline: "none"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: gnewsKey ? "#00aa66" : T.textDim,
+      fontSize: 16
+    }
+  }, gnewsKey ? "✓" : "○")))), !(newsApiAiKey || newsDataKey || guardianKey || gnewsKey) && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.neg,
+      fontFamily: "'JetBrains Mono',monospace",
+      background: T.negBg,
+      border: `1px solid ${T.neg}44`,
+      borderRadius: 4,
+      padding: "8px 12px"
+    }
+  }, "\u26A0 Add at least one API key above to enable news scanning"), (newsApiAiKey || newsDataKey || guardianKey || gnewsKey) && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#00aa66",
+      fontFamily: "'JetBrains Mono',monospace",
+      background: T.posBg,
+      border: "1px solid #00aa6644",
+      borderRadius: 4,
+      padding: "8px 12px"
+    }
+  }, "\u2713 Active: ", [newsApiAiKey && "NewsAPI.ai", guardianKey && "Guardian", gnewsKey && "GNews", newsDataKey && "NewsData.io"].filter(Boolean).join(" + "))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: `1px solid ${T.border2}`
+    }
+  }), /*#__PURE__*/React.createElement("section", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 15,
+      fontWeight: 700,
+      color: T.accentText,
+      marginBottom: 4,
+      letterSpacing: 2
+    }
+  }, "EVENT VOLUME"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: T.textSec,
+      marginBottom: 16,
+      lineHeight: 1.6
+    }
+  }, "How many events to pull per global scan. More events give broader coverage but take longer to fetch. Region scans always pull 12."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 16,
+      background: T.inputBg,
+      border: `1px solid ${T.border2}`,
+      borderRadius: 4,
+      padding: "14px 18px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: T.textMuted,
+      fontFamily: "'JetBrains Mono',monospace",
+      width: 12
+    }
+  }, "5"), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: "5",
+    max: "100",
+    step: "5",
+    value: eventCount,
+    onChange: e => setEventCount(+e.target.value),
+    style: {
+      flex: 1,
+      accentColor: "#70b8ff"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: T.textMuted,
+      fontFamily: "'JetBrains Mono',monospace",
+      width: 24
+    }
+  }, "100"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      minWidth: 64,
+      background: T.cardBg2,
+      border: `1px solid ${T.accentDim}`,
+      borderRadius: 4,
+      padding: "6px 12px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 20,
+      fontWeight: 700,
+      color: T.accentText,
+      lineHeight: 1
+    }
+  }, eventCount), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      color: T.textMuted,
+      letterSpacing: 1.5,
+      marginTop: 2,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "EVENTS"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 10,
+      flexWrap: "wrap"
+    }
+  }, [["QUICK", 15, "#3a6a9a"], ["STANDARD", 30, "#3a8aff"], ["DETAILED", 60, "#00cc88"], ["MAXIMUM", 100, "#ffaa22"]].map(([label, val, col]) => /*#__PURE__*/React.createElement("button", {
+    key: label,
+    onClick: () => setEventCount(val),
+    style: {
+      background: eventCount === val ? "#0a1e38" : "#050f1e",
+      border: `1px solid ${eventCount === val ? col : col + "33"}`,
+      color: eventCount === val ? col : col + "88",
+      borderRadius: 4,
+      padding: "4px 12px",
+      cursor: "pointer",
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 9,
+      letterSpacing: 1.5
+    }
+  }, label, " \xB7 ", val)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: "1px solid #0a2040"
+    }
+  }), /*#__PURE__*/React.createElement("section", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 15,
+      fontWeight: 700,
+      color: T.accentText,
+      marginBottom: 4,
+      letterSpacing: 2
+    }
+  }, "NEWS SOURCE CONTROL"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: T.textSec,
+      marginBottom: 16,
+      lineHeight: 1.6
+    }
+  }, "Select which outlets the AI searches when scanning for events. Deselecting sources narrows the intelligence to your chosen perspective. Source bias labels are approximate."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 16,
+      marginBottom: 18,
+      flexWrap: "wrap"
+    }
+  }, [["Center", "#3a8aff"], ["Center-Left", "#00cc88"], ["Center-Right", "#ffaa22"], ["Right", "#ff7722"], ["State", "#ff4444"]].map(([l, c]) => /*#__PURE__*/React.createElement("div", {
+    key: l,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 10,
+      color: "#4a7aaa"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 2,
+      background: c
+    }
+  }), l))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 18,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSources(Object.fromEntries(Object.keys(SOURCES).map(k => [k, true]))),
+    style: srcBtn("#1a5090", "#70b8ff")
+  }, "ALL ON"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSources(Object.fromEntries(Object.keys(SOURCES).map(k => [k, false]))),
+    style: srcBtn("#3a1818", "#ff6060")
+  }, "ALL OFF"), ["International", "US/Global", "Europe", "Middle East", "South Asia", "East Asia"].map(region => /*#__PURE__*/React.createElement("button", {
+    key: region,
+    onClick: () => setSources(prev => {
+      const regionKeys = Object.entries(SOURCES).filter(([, v]) => v.region === region).map(([k]) => k);
+      const allOn = regionKeys.every(k => prev[k]);
+      return {
+        ...prev,
+        ...Object.fromEntries(regionKeys.map(k => [k, !allOn]))
+      };
+    }),
+    style: srcBtn("#0a1e38", "#4a9adf")
+  }, region))), SOURCE_REGIONS.map(region => {
+    const regionSources = Object.entries(SOURCES).filter(([, v]) => v.region === region);
+    return /*#__PURE__*/React.createElement("div", {
+      key: region,
+      style: {
+        marginBottom: 16
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 9,
+        color: T.textMuted,
+        letterSpacing: 2,
+        marginBottom: 8,
+        fontFamily: "'JetBrains Mono',monospace"
+      }
+    }, region.toUpperCase()), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 6
+      }
+    }, regionSources.map(([k, src]) => {
+      const on = sources[k];
+      return /*#__PURE__*/React.createElement("label", {
+        key: k,
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "5px 10px",
+          borderRadius: 4,
+          cursor: "pointer",
+          background: on ? T.cardBg2 : T.tagBg,
+          border: `1px solid ${on ? src.biasCol + "55" : T.border}`,
+          opacity: on ? 1 : 0.45,
+          transition: "all 0.12s"
+        }
+      }, /*#__PURE__*/React.createElement("input", {
+        type: "checkbox",
+        checked: on,
+        onChange: e => setSources(p => ({
+          ...p,
+          [k]: e.target.checked
+        })),
+        style: {
+          display: "none"
+        }
+      }), /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          background: on ? src.biasCol : T.textDim,
+          flexShrink: 0,
+          boxShadow: on ? `0 0 4px ${src.biasCol}` : "none",
+          transition: "all 0.12s"
+        }
+      }), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 12,
+          color: on ? T.text : T.textMuted,
+          whiteSpace: "nowrap"
+        }
+      }, src.label), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 9,
+          color: on ? src.biasCol + "99" : T.textMuted,
+          letterSpacing: 0.5
+        }
+      }, src.bias));
+    })));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textMuted,
+      fontFamily: "'JetBrains Mono',monospace",
+      background: T.inputBg,
+      border: `1px solid ${T.border2}`,
+      borderRadius: 4,
+      padding: "10px 14px",
+      marginTop: 8,
+      lineHeight: 1.7
+    }
+  }, Object.values(sources).filter(Boolean).length, " / ", Object.keys(SOURCES).length, " sources active", buildSourceInstruction(sources) ? ` · Source filter active` : " · No filter (all sources)")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: "1px solid #0a2040"
+    }
+  }), /*#__PURE__*/React.createElement("section", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 15,
+      fontWeight: 700,
+      color: T.accentText,
+      marginBottom: 4,
+      letterSpacing: 2
+    }
+  }, "WEIGHTING CONFIGURATION"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: T.textSec,
+      marginBottom: 6,
+      lineHeight: 1.6
+    }
+  }, "Choose a focus preset to instantly configure weights, then fine-tune with the sliders. Changing a slider switches to Custom mode."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textMuted,
+      marginBottom: 20,
+      fontFamily: "'JetBrains Mono',monospace",
+      background: T.inputBg,
+      border: `1px solid ${T.border2}`,
+      borderRadius: 4,
+      padding: "10px 14px",
+      lineHeight: 1.7
+    }
+  }, "Formula: Displayed Intensity = Raw Intensity \xD7 (Weight / 7) \u2014 capped at 10"), /*#__PURE__*/React.createElement(PresetPicker, {
+    label: "SUFFERING FOCUS",
+    labelCol: T.neg,
+    presets: SUF_PRESETS,
+    active: sufPreset,
+    onSelect: applySufPreset,
+    T: T
+  }), /*#__PURE__*/React.createElement(WeightGroup, {
+    keys: NEG_KEYS,
+    weights: weights,
+    setWeights: setWeights,
+    label: "SUFFERING CATEGORIES",
+    labelCol: T.neg,
+    onCustomize: () => setSufPreset("custom"),
+    T: T
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: `1px solid ${T.border2}`,
+      margin: "24px 0"
+    }
+  }), /*#__PURE__*/React.createElement(PresetPicker, {
+    label: "POSITIVITY FOCUS",
+    labelCol: T.pos,
+    presets: POS_PRESETS,
+    active: posPreset,
+    onSelect: applyPosPreset,
+    T: T
+  }), /*#__PURE__*/React.createElement(WeightGroup, {
+    keys: POS_KEYS,
+    weights: weights,
+    setWeights: setWeights,
+    label: "POSITIVITY CATEGORIES",
+    labelCol: T.pos,
+    onCustomize: () => setPosPreset("custom"),
+    T: T
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: `1px solid ${T.border2}`,
+      paddingTop: 20,
+      display: "flex",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setWeights(DEFAULT_W);
+      setSufPreset("balanced");
+      setPosPreset("balanced");
+    },
+    style: {
+      background: T.cardBg,
+      border: `1px solid ${T.accentDim}`,
+      color: T.accentText,
+      borderRadius: 4,
+      padding: "8px 18px",
+      cursor: "pointer",
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 9,
+      letterSpacing: 2
+    }
+  }, "RESET ALL TO DEFAULT"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setWeights(Object.fromEntries(Object.keys(CATS).map(k => [k, 10])));
+      setSufPreset("custom");
+      setPosPreset("custom");
+    },
+    style: {
+      background: T.cardBg,
+      border: `1px solid ${T.neg}44`,
+      color: T.neg,
+      borderRadius: 4,
+      padding: "8px 18px",
+      cursor: "pointer",
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 9,
+      letterSpacing: 2
+    }
+  }, "MAXIMIZE ALL")))))), tooltip && (_cat$label4 => {
+    const ev = tooltip.ev;
+    const cat = CATS[ev.category];
+    const [r, g, b] = cat ? cat.rgb : [70, 120, 180];
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "fixed",
+        left: tipX,
+        top: tipY,
+        zIndex: 2000,
+        background: T.tooltipBg,
+        border: `1px solid rgba(${r},${g},${b},0.7)`,
+        borderRadius: 6,
+        padding: 12,
+        maxWidth: 300,
+        pointerEvents: "none",
+        boxShadow: `0 4px 24px rgba(0,0,0,${theme === "dark" ? 0.85 : 0.18})`
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 9,
+        color: `rgb(${r},${g},${b})`,
+        letterSpacing: 1.5,
+        marginBottom: 5,
+        fontFamily: "'JetBrains Mono',monospace"
+      }
+    }, cat === null || cat === void 0 || (_cat$label4 = cat.label) === null || _cat$label4 === void 0 ? void 0 : _cat$label4.toUpperCase(), " \xB7 INT ", ev.adj.toFixed(1)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: T.text,
+        lineHeight: 1.4,
+        marginBottom: 6
+      }
+    }, ev.headline), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: T.textSec,
+        lineHeight: 1.55,
+        marginBottom: 8
+      }
+    }, ev.description), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: T.textMuted
+      }
+    }, ev.country, ev.region ? ` · ${ev.region}` : ""), ev.url && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        color: `rgba(${r},${g},${b},0.8)`,
+        fontFamily: "'JetBrains Mono',monospace"
+      }
+    }, "CLICK FOR DETAIL \u2197")));
+  })(), detail && ((_cat$label5, _weights$ev$category, _ev$sentiment) => {
+    const ev = detail;
+    const cat = CATS[ev.category];
+    const [r, g, b] = cat ? cat.rgb : [70, 120, 180];
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "fixed",
+        right: 16,
+        top: 66,
+        zIndex: 1999,
+        width: 330,
+        background: T.tooltipBg,
+        border: `1px solid rgba(${r},${g},${b},0.6)`,
+        borderRadius: 6,
+        padding: 16,
+        boxShadow: `0 8px 40px rgba(0,0,0,${theme === "dark" ? 0.9 : 0.15})`
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        marginBottom: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        color: `rgb(${r},${g},${b})`,
+        letterSpacing: 1.5,
+        fontFamily: "'JetBrains Mono',monospace"
+      }
+    }, cat === null || cat === void 0 || (_cat$label5 = cat.label) === null || _cat$label5 === void 0 ? void 0 : _cat$label5.toUpperCase()), /*#__PURE__*/React.createElement("span", {
+      style: {
+        marginLeft: 10,
+        fontSize: 9,
+        color: T.textMuted,
+        fontFamily: "'JetBrains Mono',monospace"
+      }
+    }, ev.timestamp || "")), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setDetail(null),
+      style: {
+        background: "none",
+        border: "none",
+        color: T.textMuted,
+        cursor: "pointer",
+        fontSize: 18,
+        padding: 0,
+        lineHeight: 1
+      }
+    }, "\xD7")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 600,
+        color: T.text,
+        lineHeight: 1.4,
+        marginBottom: 8
+      }
+    }, ev.headline), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        color: T.textSec,
+        lineHeight: 1.65,
+        marginBottom: 14
+      }
+    }, ev.description), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 7,
+        marginBottom: 14
+      }
+    }, [["LOCATION", `${ev.country}${ev.region ? ` · ${ev.region}` : ""}`], ["DISPLAYED", `${ev.adj.toFixed(1)} / 10`], ["RAW SCORE", `${ev.intensity} / 10`], ["WEIGHT", `${(_weights$ev$category = weights[ev.category]) !== null && _weights$ev$category !== void 0 ? _weights$ev$category : 7}× modifier`], ["SOURCE", ev.source || "Multiple sources"], ["SENTIMENT", ((_ev$sentiment = ev.sentiment) === null || _ev$sentiment === void 0 ? void 0 : _ev$sentiment.toUpperCase()) || "—"]].map(([l, v]) => /*#__PURE__*/React.createElement("div", {
+      key: l,
+      style: {
+        background: T.cardBg,
+        borderRadius: 3,
+        padding: "7px 9px",
+        border: `1px solid ${T.border}`
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 8,
+        color: T.textMuted,
+        letterSpacing: 1.5,
+        marginBottom: 2,
+        fontFamily: "'JetBrains Mono',monospace"
+      }
+    }, l), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: T.text,
+        fontWeight: 500,
+        lineHeight: 1.3
+      }
+    }, v)))), ev.url ? /*#__PURE__*/React.createElement("a", {
+      href: ev.url,
+      target: "_blank",
+      rel: "noreferrer",
+      style: {
+        display: "block",
+        textAlign: "center",
+        padding: "9px",
+        background: T.cardBg,
+        border: `1px solid rgba(${r},${g},${b},0.5)`,
+        borderRadius: 4,
+        color: `rgb(${r},${g},${b})`,
+        fontSize: 9,
+        textDecoration: "none",
+        letterSpacing: 2,
+        fontFamily: "'Orbitron',sans-serif"
+      }
+    }, "\u2197 READ SOURCE ARTICLE") : /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center",
+        fontSize: 10,
+        color: T.textMuted,
+        fontFamily: "'JetBrains Mono',monospace"
+      }
+    }, "NO DIRECT LINK AVAILABLE"));
+  })(), /*#__PURE__*/React.createElement("style", null, `
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+        ::-webkit-scrollbar{width:4px;height:4px}
+        ::-webkit-scrollbar-track{background:${T.bg}}
+        ::-webkit-scrollbar-thumb{background:${T.border};border-radius:2px}
+        *{box-sizing:border-box}
+      `));
+}
+
+/* ── Sub-components ── */
+
+function srcBtn(bg, col) {
+  return {
+    background: bg,
+    border: `1px solid ${col}44`,
+    color: col,
+    borderRadius: 4,
+    padding: "4px 10px",
+    cursor: "pointer",
+    fontFamily: "'Orbitron',sans-serif",
+    fontSize: 9,
+    letterSpacing: 1.5
+  };
+}
+function Stat({
+  val,
+  label,
+  col,
+  bg,
+  border,
+  full
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: bg,
+      border: `1px solid ${border || col}33`,
+      borderRadius: 4,
+      padding: "7px 8px",
+      gridColumn: full ? "span 2" : undefined
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 18,
+      fontWeight: 700,
+      color: col,
+      fontFamily: "'Orbitron',sans-serif",
+      lineHeight: 1
+    }
+  }, val), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: col,
+      opacity: 0.65,
+      letterSpacing: 1.5,
+      marginTop: 2,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, label));
+}
+function CatGroup({
+  keys,
+  cats,
+  setCats,
+  onToggleAll,
+  label,
+  labelCol,
+  T = THEMES.dark,
+  catCounts = {},
+  focusedCat = null,
+  onFocusCat = () => {}
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 10px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 7
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      color: labelCol,
+      letterSpacing: 2,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "\u25C8 ", label), /*#__PURE__*/React.createElement("button", {
+    onClick: onToggleAll,
+    style: {
+      background: "none",
+      border: "none",
+      color: T.textMuted,
+      cursor: "pointer",
+      fontSize: 10,
+      padding: 0
+    }
+  }, "toggle all")), keys.map(k => {
+    const cat = CATS[k];
+    const [r, g, b] = cat.rgb;
+    const on = cats[k];
+    const count = catCounts[k] || 0;
+    const isFocused = focusedCat === k;
+    const otherFocused = focusedCat && !isFocused;
+    return /*#__PURE__*/React.createElement("div", {
+      key: k,
+      style: {
+        display: "flex",
+        alignItems: "stretch",
+        marginBottom: 2,
+        borderRadius: 3,
+        overflow: "hidden",
+        background: isFocused ? `rgba(${r},${g},${b},0.1)` : on ? T.cardBg : "transparent",
+        border: `1px solid ${isFocused ? `rgb(${r},${g},${b})` : on ? T.border : "transparent"}`,
+        opacity: otherFocused ? 0.35 : on ? 1 : 0.38,
+        transition: "all 0.15s"
+      }
+    }, /*#__PURE__*/React.createElement("label", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "4px 6px",
+        cursor: "pointer",
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: on,
+      onChange: e => setCats(p => ({
+        ...p,
+        [k]: e.target.checked
+      })),
+      style: {
+        display: "none"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: "50%",
+        flexShrink: 0,
+        background: `rgb(${r},${g},${b})`,
+        boxShadow: on ? `0 0 5px rgb(${r},${g},${b})` : "none"
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: on ? T.text : T.textMuted,
+        fontWeight: on ? 500 : 400,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, cat.label)), count > 0 && /*#__PURE__*/React.createElement("button", {
+      onClick: () => onFocusCat(isFocused ? null : k),
+      title: isFocused ? "Clear filter" : "Show only this category on map",
+      style: {
+        flexShrink: 0,
+        background: isFocused ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},0.15)`,
+        color: isFocused ? "#fff" : `rgb(${r},${g},${b})`,
+        border: "none",
+        borderLeft: `1px solid rgba(${r},${g},${b},${isFocused ? 0.6 : 0.25})`,
+        padding: "0 8px",
+        fontSize: 10,
+        fontFamily: "'JetBrains Mono',monospace",
+        cursor: "pointer",
+        fontWeight: 700,
+        display: "flex",
+        alignItems: "center",
+        transition: "all 0.15s"
+      }
+    }, count));
+  }));
+}
+function PresetPicker({
+  label,
+  labelCol,
+  presets,
+  active,
+  onSelect,
+  T = THEMES.dark
+}) {
+  const activePreset = presets[active];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 20,
+      background: T.inputBg,
+      border: `1px solid ${T.border2}`,
+      borderRadius: 4,
+      padding: "14px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: labelCol,
+      letterSpacing: 2,
+      marginBottom: 10,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "\u25C8 ", label, " \u2014 FOCUS PRESET"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap",
+      marginBottom: 10
+    }
+  }, Object.entries(presets).map(([k, p]) => {
+    const isCurrent = active === k;
+    return /*#__PURE__*/React.createElement("button", {
+      key: k,
+      onClick: () => onSelect(k),
+      style: {
+        background: isCurrent ? T.cardBg2 : "transparent",
+        border: `1px solid ${isCurrent ? labelCol : labelCol + "30"}`,
+        color: isCurrent ? labelCol : labelCol + "60",
+        borderRadius: 4,
+        padding: "5px 12px",
+        cursor: "pointer",
+        fontFamily: "'Orbitron',sans-serif",
+        fontSize: 9,
+        letterSpacing: 1,
+        transition: "all 0.12s"
+      }
+    }, p.label);
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textMuted,
+      fontFamily: "'JetBrains Mono',monospace",
+      lineHeight: 1.5
+    }
+  }, (activePreset === null || activePreset === void 0 ? void 0 : activePreset.desc) || "Manually configured"));
+}
+function WeightGroup({
+  keys,
+  weights,
+  setWeights,
+  label,
+  labelCol,
+  onCustomize,
+  T = THEMES.dark
+}) {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: labelCol,
+      letterSpacing: 2,
+      marginBottom: 18,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "\u25C8 ", label), keys.map(k => {
+    var _weights$k;
+    const cat = CATS[k];
+    const [r, g, b] = cat.rgb;
+    const w = (_weights$k = weights[k]) !== null && _weights$k !== void 0 ? _weights$k : 7;
+    return /*#__PURE__*/React.createElement("div", {
+      key: k,
+      style: {
+        marginBottom: 18
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 7
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        width: 9,
+        height: 9,
+        borderRadius: "50%",
+        background: `rgb(${r},${g},${b})`,
+        display: "inline-block",
+        boxShadow: `0 0 5px rgb(${r},${g},${b})`
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: T.text
+      }
+    }, cat.label), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: T.textMuted
+      }
+    }, cat.desc)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "'Orbitron',sans-serif",
+        fontSize: 13,
+        fontWeight: 700,
+        color: `rgb(${r},${g},${b})`,
+        minWidth: 20,
+        textAlign: "right"
+      }
+    }, w)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: T.textMuted,
+        width: 10,
+        fontFamily: "'JetBrains Mono',monospace"
+      }
+    }, "1"), /*#__PURE__*/React.createElement("input", {
+      type: "range",
+      min: "1",
+      max: "10",
+      step: "1",
+      value: w,
+      onChange: e => {
+        setWeights(p => ({
+          ...p,
+          [k]: +e.target.value
+        }));
+        onCustomize === null || onCustomize === void 0 || onCustomize();
+      },
+      style: {
+        flex: 1,
+        accentColor: `rgb(${r},${g},${b})`
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: T.textMuted,
+        width: 18,
+        fontFamily: "'JetBrains Mono',monospace"
+      }
+    }, "10")));
+  }));
+}
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+
+  <script>
+    // Hide splash once React has rendered something into #root
+    const observer = new MutationObserver(() => {
+      if (document.getElementById("root").children.length > 0) {
+        const s = document.getElementById("splash");
+        s.classList.add("hide");
+        setTimeout(() => s.remove(), 600);
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.getElementById("root"), { childList: true });
+  </script>
+</body>
+</html>
