@@ -2045,7 +2045,10 @@ function App() {
   const isZoomed = zoomK > 1.05;
   const scanBusy = isZoomed ? regionLoading : loading;
   const scanLabel = isZoomed ? regionLoading ? "SCANNING..." : `⊕ REGION (${zoomK.toFixed(1)}×)` : loading ? "SCANNING..." : `⟳ SCAN ${eventCount}`;
-  const scanAction = isZoomed ? fetchRegion : fetch_news;
+  const scanAction = useCallback(() => {
+    if (isZoomed) { if (fetchRegion) fetchRegion(); }
+    else { if (fetch_news) fetch_news(); }
+  }, [isZoomed, fetchRegion, fetch_news]);
   const negEvs = evs.filter(e => e.sentiment === "negative");
   const posEvs = evs.filter(e => e.sentiment === "positive");
   const avgNeg = negEvs.length ? negEvs.reduce((s, e) => s + e.adj, 0) / negEvs.length : 0;
@@ -5348,12 +5351,30 @@ function WeightGroup({
     }, "10")));
   }));
 }
+// Error boundary catches React render errors (window.onerror doesn't)
+class ErrBoundary extends React.Component {
+  constructor(p) { super(p); this.state = { err: null }; }
+  static getDerivedStateFromError(e) { return { err: e }; }
+  componentDidCatch(e) {
+    var s = document.getElementById('splash');
+    if (s) {
+      s.style.opacity = '1';
+      s.innerHTML = '<div style="color:#ff6060;font-family:monospace;padding:30px;max-width:90vw;word-break:break-word">'
+        + '<div style="font-size:15px;font-weight:bold;margin-bottom:12px">⚠ React Error</div>'
+        + '<div style="font-size:12px">' + (e && e.message || String(e)) + '</div></div>';
+    }
+  }
+  render() { return this.state.err ? null : this.props.children; }
+}
+
 try {
-  ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+  ReactDOM.createRoot(document.getElementById("root")).render(
+    React.createElement(ErrBoundary, null, React.createElement(App))
+  );
 } catch(e) {
   var s = document.getElementById('splash');
   if (s) s.innerHTML = '<div style="color:#ff6060;font-family:monospace;padding:30px">'
-    + '<b>React mount error:</b><br>' + e.message + '<br><small>' + (e.stack||'').slice(0,400) + '</small></div>';
+    + '<b>Mount error:</b><br>' + (e && e.message) + '</div>';
 }
 </script>
 
@@ -5368,6 +5389,12 @@ try {
       }
     });
     observer.observe(document.getElementById("root"), { childList: true });
+
+    // Force-remove splash after 3s regardless — prevents infinite loading
+    setTimeout(function() {
+      var s = document.getElementById("splash");
+      if (s) { s.classList.add("hide"); setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 600); }
+    }, 2000);
   </script>
 </body>
 </html>
