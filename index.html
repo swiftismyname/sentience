@@ -2021,20 +2021,6 @@ function App() {
       } catch(e) { sourceErrors.push("NewsData.io: "+e.message.slice(0,80)); console.warn("NewsData failed:", e.message); }
     }
 
-      // ── Deduplicate + limit ─────────────────────────────────────
-      setScanMsg("Processing events...");
-      const seen = new Set();
-      const unique = allArticles.filter(e => {
-        const k = e.headline.slice(0, 60);
-        if (seen.has(k)) return false;
-        seen.add(k);
-        return true;
-      }).slice(0, eventCount);
-      const sources = [newsApiAiKey && "NewsAPI.ai", guardianKey && "Guardian", gnewsKey && "GNews", newsDataKey && "NewsData.io"].filter(Boolean);
-      setEvents(unique);
-      setMood(calcMood(unique));
-      setSummary(`${unique.length} events · ${sources.join(", ")}`);
-      setFetchedAt(new Date().toISOString());
     // Show partial errors if some sources failed but we got data
     if (sourceErrors.length && allArticles.length === 0) {
       setError("All sources failed: " + sourceErrors.join(" | "));
