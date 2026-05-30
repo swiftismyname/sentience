@@ -1563,6 +1563,7 @@ function App() {
   const zoomRef = useRef(null);
   const transformRef = useRef(d3.zoomIdentity);
   const evsRef = useRef([]);
+  const lastScanRef = useRef(0);
   const [zoomK, setZoomK] = useState(1);
   const [dragging, setDragging] = useState(false);
   const [visibleBounds, setVBounds] = useState(null);
@@ -1956,14 +1957,6 @@ function App() {
       setError("Add at least one API key in Settings → API Keys to scan news.");
       return;
     }
-    const now = Date.now();
-    const cooldown = 20000; // 20 seconds between scans
-    if (now - lastScanRef.current < cooldown) {
-      const wait = Math.ceil((cooldown - (now - lastScanRef.current)) / 1000);
-      setError("Please wait " + wait + "s before scanning again (rate limit protection).");
-      return;
-    }
-    lastScanRef.current = now;
     setLoading(true);
     setError(null);
     const allArticles = [];
