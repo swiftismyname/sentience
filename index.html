@@ -1408,6 +1408,67 @@ function calcMood(evs) {
   const neg = evs.filter(e => e.sentiment === "negative").length;
   return Math.round((pos - neg) / evs.length * 10);
 }
+function mediastackToEvent(art) {
+  const text = (art.title || "") + " " + (art.description || "");
+  const [cat, sent] = catText(text);
+  if (!cat) return null;
+  // MediaStack returns lowercase ISO-2 country codes
+  const cc = (art.country || "").toUpperCase();
+  const loc = CC2[cc];
+  if (!loc) return null;
+  return {
+    id: art.url || Math.random().toString(36).slice(2),
+    headline: (art.title || "").slice(0, 120),
+    description: (art.description || "").slice(0, 200),
+    country: loc.n, region: "",
+    lat: loc.lat, lng: loc.lng,
+    category: cat, sentiment: sent,
+    intensity: scoreInt(text, cat),
+    url: art.url || "",
+    source: art.source || "MediaStack",
+    timestamp: (art.published_at || "").slice(0, 10),
+  };
+}
+
+function newsorgToEvent(art) {
+  const text = (art.title || "") + " " + (art.description || "");
+  const [cat, sent] = catText(text);
+  if (!cat) return null;
+  const loc = findLocInText(text);
+  if (!loc) return null;
+  return {
+    id: art.url || Math.random().toString(36).slice(2),
+    headline: (art.title || "").slice(0, 120),
+    description: (art.description || "").slice(0, 200),
+    country: loc.country, region: "",
+    lat: loc.lat, lng: loc.lng,
+    category: cat, sentiment: sent,
+    intensity: scoreInt(text, cat),
+    url: art.url || "",
+    source: (art.source && art.source.name) || "NewsAPI",
+    timestamp: (art.publishedAt || "").slice(0, 10),
+  };
+}
+function currentsToEvent(art) {
+  const text = (art.title || "") + " " + (art.description || "");
+  const [cat, sent] = catText(text);
+  if (!cat) return null;
+  const loc = findLocInText(text);
+  if (!loc) return null;
+  return {
+    id: art.id || Math.random().toString(36).slice(2),
+    headline: (art.title || "").slice(0, 120),
+    description: (art.description || "").slice(0, 200),
+    country: loc.country, region: "",
+    lat: loc.lat, lng: loc.lng,
+    category: cat, sentiment: sent,
+    intensity: scoreInt(text, cat),
+    url: art.url || "",
+    source: art.author || "Currents",
+    timestamp: (art.published || "").slice(0, 10),
+  };
+}
+
 function App() {
   var _CATS$focusedCat, _CATS$focusedCat2, _CATS$focusedCat3;
   /* ── API key (stored in sessionStorage for convenience) ── */
@@ -1427,25 +1488,28 @@ function App() {
   });
   const [newsDataKey, setNewsDataKey] = useState(() => {
     try {
-      return sessionStorage.getItem("sentience_ndk") || "";
+      return sessionStorage.getItem("sentience_ndk") || "pub_6208c0c5413040f79708518292ba55ae";
     } catch {
       return "";
     }
   });
   const [guardianKey, setGuardianKey] = useState(() => {
     try {
-      return sessionStorage.getItem("sentience_gk") || "";
+      return sessionStorage.getItem("sentience_gk") || "42b822cd-a004-46fe-b288-0b1701e1478e";
     } catch {
       return "";
     }
   });
   const [gnewsKey, setGnewsKey] = useState(() => {
     try {
-      return sessionStorage.getItem("sentience_gnk") || "";
+      return sessionStorage.getItem("sentience_gnk") || "eb9edfe3e33cca8a983faa19db7b29bc";
     } catch {
       return "";
     }
-  });
+  })
+  const [mediastackKey, setMediastackKey] = useState("48780c50b32ad907aa522a682e9f6fd9");
+  const [newsorgKey,    setNewsorgKey]    = useState("5f9097be3cc94fa198a7170e77cc4bc9");
+  const [currentsKey,   setCurrentsKey]  = useState("_E0ccBg8bhT4ofoQdC-MhjVfGbFw0-PV6IcwGl5OPoqclRXg");;
   useEffect(() => {
     try {
       if (newsApiAiKey) sessionStorage.setItem("sentience_nak", newsApiAiKey);
@@ -1952,7 +2016,7 @@ function App() {
     }
   }, [getVisibleBounds, newsApiAiKey, newsDataKey, proxyCall]);
   const fetch_news = useCallback(async () => {
-    const hasAny = newsApiAiKey || newsDataKey || guardianKey || gnewsKey;
+    const hasAny = newsApiAiKey || newsDataKey || guardianKey || gnewsKey || mediastackKey || newsorgKey || currentsKey;
     if (!hasAny) {
       setError("Add at least one API key in Settings → API Keys to scan news.");
       return;
@@ -2003,7 +2067,41 @@ function App() {
       } catch(e) { sourceErrors.push("GNews: "+e.message.slice(0,80)); console.warn("GNews failed:", e.message); }
     }
 
-    // ── 4. NewsData.io ──────────────────────────────────────────
+    // ── 4. MediaStack (live news) ────────────────────────────────
+    if (mediastackKey && mediastackKey.trim()) {
+      try {
+        setScanMsg("Scanning MediaStack live news...");
+        // MediaStack free tier requires HTTP — route through Worker which handles it server-side
+        const msUrl = "http://api.mediastack.com/v1/news?access_key=" + mediastackKey.trim() + "&languages=en&sort=published_desc&limit=100";
+        const msRes = await proxyCall(msUrl, null, "GET");
+        const msD = await msRes.json();
+        (msD?.data || []).forEach(a => { const ev = mediastackToEvent(a); if (ev) allArticles.push(ev); });
+      } catch(e) { sourceErrors.push("MediaStack: " + e.message.slice(0, 80)); console.warn("MediaStack failed:", e.message); }
+    }
+
+    // ── 5. NewsAPI.org ───────────────────────────────────────────
+    if (newsorgKey && newsorgKey.trim()) {
+      try {
+        setScanMsg("Scanning NewsAPI.org...");
+        const noUrl = "https://newsapi.org/v2/everything?apiKey=" + newsorgKey.trim() + "&language=en&sortBy=publishedAt&pageSize=100&q=war+OR+attack+OR+crisis+OR+disaster+OR+conflict+OR+peace+OR+election+OR+protest+OR+earthquake+OR+shooting";
+        const noRes = await proxyCall(noUrl, null, "GET");
+        const noD = await noRes.json();
+        (noD?.articles || []).forEach(a => { const ev = newsorgToEvent(a); if (ev) allArticles.push(ev); });
+      } catch(e) { sourceErrors.push("NewsAPI.org: " + e.message.slice(0, 80)); console.warn("NewsAPI.org failed:", e.message); }
+    }
+
+    // ── 6. CurrentsAPI ───────────────────────────────────────────
+    if (currentsKey && currentsKey.trim()) {
+      try {
+        setScanMsg("Scanning CurrentsAPI...");
+        const cuUrl = "https://api.currentsapi.services/v1/latest-news?apiKey=" + currentsKey.trim() + "&language=en";
+        const cuRes = await proxyCall(cuUrl, null, "GET");
+        const cuD = await cuRes.json();
+        (cuD?.news || []).forEach(a => { const ev = currentsToEvent(a); if (ev) allArticles.push(ev); });
+      } catch(e) { sourceErrors.push("CurrentsAPI: " + e.message.slice(0, 80)); console.warn("CurrentsAPI failed:", e.message); }
+    }
+
+    // ── 7. NewsData.io ──────────────────────────────────────────
     if (newsDataKey && newsDataKey.trim()) {
       try {
         setScanMsg("Scanning NewsData.io...");
@@ -2025,7 +2123,7 @@ function App() {
     const unique = allArticles
       .filter(e=>{const k=e.headline.slice(0,60);if(seen.has(k))return false;seen.add(k);return true;})
       .slice(0, eventCount);
-    const activeSources = [newsApiAiKey&&"NewsAPI.ai",guardianKey&&"Guardian",gnewsKey&&"GNews",newsDataKey&&"NewsData.io"].filter(Boolean);
+    const activeSources = [newsApiAiKey&&"NewsAPI.ai",guardianKey&&"Guardian",gnewsKey&&"GNews",mediastackKey&&"MediaStack",newsorgKey&&"NewsAPI.org",currentsKey&&"Currents",newsDataKey&&"NewsData.io"].filter(Boolean);
     setEvents(unique);
     setMood(calcMood(unique));
     setSummary((unique.length||"No")+" events · "+activeSources.join(", "));
@@ -2755,19 +2853,19 @@ function App() {
       fontSize: 12,
       outline: "none"
     }
-  })), !(newsApiAiKey || newsDataKey || guardianKey || gnewsKey) && /*#__PURE__*/React.createElement("div", {
+  })), !(newsApiAiKey || newsDataKey || guardianKey || gnewsKey || mediastackKey || newsorgKey || currentsKey) && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10,
       color: T.neg,
       fontFamily: "'JetBrains Mono',monospace"
     }
-  }, "\u26A0 At least one key required"), (newsApiAiKey || newsDataKey || guardianKey || gnewsKey) && /*#__PURE__*/React.createElement("div", {
+  }, "\u26A0 At least one key required"), (newsApiAiKey || newsDataKey || guardianKey || gnewsKey || mediastackKey || newsorgKey || currentsKey) && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 10,
       color: "#00aa66",
       fontFamily: "'JetBrains Mono',monospace"
     }
-  }, "\u2713 ", [newsApiAiKey && "NewsAPI.ai", guardianKey && "Guardian", gnewsKey && "GNews", newsDataKey && "NewsData.io"].filter(Boolean).join(" + "), " active")), /*#__PURE__*/React.createElement("div", {
+  }, "\u2713 ", [newsApiAiKey && "NewsAPI.ai", guardianKey && "Guardian", gnewsKey && "GNews", mediastackKey && "MediaStack", newsorgKey && "NewsAPI.org", currentsKey && "Currents", newsDataKey && "NewsData.io"].filter(Boolean).join(" + "), " active")), /*#__PURE__*/React.createElement("div", {
     style: {
       borderTop: `1px solid ${T.border2}`,
       margin: "12px 0"
@@ -4440,7 +4538,7 @@ function App() {
       color: gnewsKey ? "#00aa66" : T.textDim,
       fontSize: 16
     }
-  }, gnewsKey ? "✓" : "○")))), !(newsApiAiKey || newsDataKey || guardianKey || gnewsKey) && /*#__PURE__*/React.createElement("div", {
+  }, gnewsKey ? "✓" : "○")))), !(newsApiAiKey || newsDataKey || guardianKey || gnewsKey || mediastackKey || newsorgKey || currentsKey) && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: T.neg,
@@ -4450,7 +4548,7 @@ function App() {
       borderRadius: 4,
       padding: "8px 12px"
     }
-  }, "\u26A0 Add at least one API key above to enable news scanning"), (newsApiAiKey || newsDataKey || guardianKey || gnewsKey) && /*#__PURE__*/React.createElement("div", {
+  }, "\u26A0 Add at least one API key above to enable news scanning"), (newsApiAiKey || newsDataKey || guardianKey || gnewsKey || mediastackKey || newsorgKey || currentsKey) && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#00aa66",
@@ -4460,7 +4558,7 @@ function App() {
       borderRadius: 4,
       padding: "8px 12px"
     }
-  }, "\u2713 Active: ", [newsApiAiKey && "NewsAPI.ai", guardianKey && "Guardian", gnewsKey && "GNews", newsDataKey && "NewsData.io"].filter(Boolean).join(" + "))), /*#__PURE__*/React.createElement("div", {
+  }, "\u2713 Active: ", [newsApiAiKey && "NewsAPI.ai", guardianKey && "Guardian", gnewsKey && "GNews", mediastackKey && "MediaStack", newsorgKey && "NewsAPI.org", currentsKey && "Currents", newsDataKey && "NewsData.io"].filter(Boolean).join(" + "))), /*#__PURE__*/React.createElement("div", {
     style: {
       borderTop: `1px solid ${T.border2}`
     }
