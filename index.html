@@ -1956,29 +1956,33 @@ function App() {
       setError("Add at least one API key in Settings → API Keys to scan news.");
       return;
     }
+    const now = Date.now();
+    const cooldown = 20000; // 20 seconds between scans
+    if (now - lastScanRef.current < cooldown) {
+      const wait = Math.ceil((cooldown - (now - lastScanRef.current)) / 1000);
+      setError("Please wait " + wait + "s before scanning again (rate limit protection).");
+      return;
+    }
+    lastScanRef.current = now;
     setLoading(true);
     setError(null);
     const allArticles = [];
     const sourceErrors = [];
 
-    // ── 1. NewsAPI.ai (EventRegistry) — wrapped so failure is non-fatal ──
+    // ── 1. NewsAPI.ai (EventRegistry) — single call to avoid rate limits ──
     if (newsApiAiKey && newsApiAiKey.trim()) {
       try {
-        setScanMsg("Scanning conflicts & crises (NewsAPI.ai)...");
-        const negRes = await proxyCall("https://eventregistry.org/api/v1/article/getArticles", {
-          action:"getArticles", keyword:NEG_KW, lang:"eng",
-          articlesCount:Math.ceil(eventCount*0.4), articlesSortBy:"date", apiKey:newsApiAiKey.trim()
+        setScanMsg("Scanning global news (NewsAPI.ai)...");
+        const erRes = await proxyCall("https://eventregistry.org/api/v1/article/getArticles", {
+          action:"getArticles",
+          keyword: NEG_KW + " OR " + POS_KW,
+          lang:"eng",
+          articlesCount: Math.min(eventCount, 100),
+          articlesSortBy:"date",
+          apiKey: newsApiAiKey.trim()
         });
-        const negD = await negRes.json();
-        ((negD?.articles?.results)||[]).forEach(a=>{const ev=erToEvent(a);if(ev)allArticles.push(ev);});
-
-        setScanMsg("Scanning positive stories (NewsAPI.ai)...");
-        const posRes = await proxyCall("https://eventregistry.org/api/v1/article/getArticles", {
-          action:"getArticles", keyword:POS_KW, lang:"eng",
-          articlesCount:Math.ceil(eventCount*0.25), articlesSortBy:"date", apiKey:newsApiAiKey.trim()
-        });
-        const posD = await posRes.json();
-        ((posD?.articles?.results)||[]).forEach(a=>{const ev=erToEvent(a);if(ev)allArticles.push(ev);});
+        const erD = await erRes.json();
+        ((erD?.articles?.results)||[]).forEach(a=>{const ev=erToEvent(a);if(ev)allArticles.push(ev);});
       } catch(e) { sourceErrors.push("NewsAPI.ai: "+e.message.slice(0,80)); console.warn("NewsAPI.ai failed:", e.message); }
     }
 
