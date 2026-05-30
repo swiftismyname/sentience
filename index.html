@@ -1959,84 +1959,63 @@ function App() {
     setLoading(true);
     setError(null);
     const allArticles = [];
-    try {
-      // ── 1. NewsAPI.ai (EventRegistry) ──────────────────────────
-      if (newsApiAiKey) {
-        var _negD$articles, _posD$articles;
+    const sourceErrors = [];
+
+    // ── 1. NewsAPI.ai (EventRegistry) — wrapped so failure is non-fatal ──
+    if (newsApiAiKey && newsApiAiKey.trim()) {
+      try {
         setScanMsg("Scanning conflicts & crises (NewsAPI.ai)...");
         const negRes = await proxyCall("https://eventregistry.org/api/v1/article/getArticles", {
-          action: "getArticles",
-          keyword: NEG_KW,
-          lang: "eng",
-          articlesCount: Math.ceil(eventCount * 0.4),
-          articlesSortBy: "date",
-          apiKey: newsApiAiKey
+          action:"getArticles", keyword:NEG_KW, lang:"eng",
+          articlesCount:Math.ceil(eventCount*0.4), articlesSortBy:"date", apiKey:newsApiAiKey.trim()
         });
         const negD = await negRes.json();
-        ((negD === null || negD === void 0 || (_negD$articles = negD.articles) === null || _negD$articles === void 0 ? void 0 : _negD$articles.results) || []).forEach(a => {
-          const ev = erToEvent(a);
-          if (ev) allArticles.push(ev);
-        });
+        ((negD?.articles?.results)||[]).forEach(a=>{const ev=erToEvent(a);if(ev)allArticles.push(ev);});
+
         setScanMsg("Scanning positive stories (NewsAPI.ai)...");
         const posRes = await proxyCall("https://eventregistry.org/api/v1/article/getArticles", {
-          action: "getArticles",
-          keyword: POS_KW,
-          lang: "eng",
-          articlesCount: Math.ceil(eventCount * 0.25),
-          articlesSortBy: "date",
-          apiKey: newsApiAiKey
+          action:"getArticles", keyword:POS_KW, lang:"eng",
+          articlesCount:Math.ceil(eventCount*0.25), articlesSortBy:"date", apiKey:newsApiAiKey.trim()
         });
         const posD = await posRes.json();
-        ((posD === null || posD === void 0 || (_posD$articles = posD.articles) === null || _posD$articles === void 0 ? void 0 : _posD$articles.results) || []).forEach(a => {
-          const ev = erToEvent(a);
-          if (ev) allArticles.push(ev);
-        });
-      }
+        ((posD?.articles?.results)||[]).forEach(a=>{const ev=erToEvent(a);if(ev)allArticles.push(ev);});
+      } catch(e) { sourceErrors.push("NewsAPI.ai: "+e.message.slice(0,80)); console.warn("NewsAPI.ai failed:", e.message); }
+    }
 
-      // ── 2. The Guardian ─────────────────────────────────────────
-      if (guardianKey) {
-        var _gD$response;
+    // ── 2. The Guardian ─────────────────────────────────────────
+    if (guardianKey && guardianKey.trim()) {
+      try {
         setScanMsg("Scanning The Guardian...");
-        const gUrl = `https://content.guardianapis.com/search?api-key=${guardianKey}&section=world&show-fields=trailText&order-by=newest&page-size=50&q=war+OR+attack+OR+crisis+OR+disaster+OR+conflict+OR+peace+OR+election+OR+protest`;
-        const gRes = await proxyCall(gUrl, undefined, "GET");
+        const gUrl = "https://content.guardianapis.com/search?api-key="+guardianKey.trim()+"&section=world&show-fields=trailText&order-by=newest&page-size=50&q=war+OR+attack+OR+crisis+OR+disaster+OR+conflict+OR+peace+OR+election+OR+protest";
+        const gRes = await proxyCall(gUrl, null, "GET");
         const gD = await gRes.json();
-        ((gD === null || gD === void 0 || (_gD$response = gD.response) === null || _gD$response === void 0 ? void 0 : _gD$response.results) || []).forEach(a => {
-          const ev = guardianToEvent(a);
-          if (ev) allArticles.push(ev);
-        });
-      }
+        ((gD?.response?.results)||[]).forEach(a=>{const ev=guardianToEvent(a);if(ev)allArticles.push(ev);});
+      } catch(e) { sourceErrors.push("Guardian: "+e.message.slice(0,80)); console.warn("Guardian failed:", e.message); }
+    }
 
-      // ── 3. GNews ────────────────────────────────────────────────
-      if (gnewsKey) {
-        setScanMsg("Scanning GNews top stories...");
-        const gnUrl1 = `https://gnews.io/api/v4/top-headlines?token=${gnewsKey}&topic=world&lang=en&max=10`;
-        const gn1 = await proxyCall(gnUrl1, undefined, "GET");
+    // ── 3. GNews ────────────────────────────────────────────────
+    if (gnewsKey && gnewsKey.trim()) {
+      try {
+        setScanMsg("Scanning GNews...");
+        const gn1 = await proxyCall("https://gnews.io/api/v4/top-headlines?token="+gnewsKey.trim()+"&topic=world&lang=en&max=10", null, "GET");
         const gd1 = await gn1.json();
-        ((gd1 === null || gd1 === void 0 ? void 0 : gd1.articles) || []).forEach(a => {
-          const ev = gnewsToEvent(a);
-          if (ev) allArticles.push(ev);
-        });
-        setScanMsg("Scanning GNews crisis search...");
-        const gnUrl2 = `https://gnews.io/api/v4/search?token=${gnewsKey}&q=war+conflict+attack+disaster+crisis&lang=en&max=10`;
-        const gn2 = await proxyCall(gnUrl2, undefined, "GET");
+        (gd1?.articles||[]).forEach(a=>{const ev=gnewsToEvent(a);if(ev)allArticles.push(ev);});
+        const gn2 = await proxyCall("https://gnews.io/api/v4/search?token="+gnewsKey.trim()+"&q=war+conflict+attack+disaster+crisis&lang=en&max=10", null, "GET");
         const gd2 = await gn2.json();
-        ((gd2 === null || gd2 === void 0 ? void 0 : gd2.articles) || []).forEach(a => {
-          const ev = gnewsToEvent(a);
-          if (ev) allArticles.push(ev);
-        });
-      }
+        (gd2?.articles||[]).forEach(a=>{const ev=gnewsToEvent(a);if(ev)allArticles.push(ev);});
+      } catch(e) { sourceErrors.push("GNews: "+e.message.slice(0,80)); console.warn("GNews failed:", e.message); }
+    }
 
-      // ── 4. NewsData.io ──────────────────────────────────────────
-      if (newsDataKey) {
+    // ── 4. NewsData.io ──────────────────────────────────────────
+    if (newsDataKey && newsDataKey.trim()) {
+      try {
         setScanMsg("Scanning NewsData.io...");
-        const ndUrl = `https://newsdata.io/api/1/latest?apikey=${newsDataKey}&language=en&size=50`;
-        const ndRes = await proxyCall(ndUrl, undefined, "GET");
+        const ndUrl = "https://newsdata.io/api/1/latest?apikey="+newsDataKey.trim()+"&language=en&size=50";
+        const ndRes = await proxyCall(ndUrl, null, "GET");
         const ndD = await ndRes.json();
-        ((ndD === null || ndD === void 0 ? void 0 : ndD.results) || []).forEach(a => {
-          const ev = ndToEvent(a);
-          if (ev) allArticles.push(ev);
-        });
-      }
+        (ndD?.results||[]).forEach(a=>{const ev=ndToEvent(a);if(ev)allArticles.push(ev);});
+      } catch(e) { sourceErrors.push("NewsData.io: "+e.message.slice(0,80)); console.warn("NewsData failed:", e.message); }
+    }
 
       // ── Deduplicate + limit ─────────────────────────────────────
       setScanMsg("Processing events...");
@@ -2052,11 +2031,23 @@ function App() {
       setMood(calcMood(unique));
       setSummary(`${unique.length} events · ${sources.join(", ")}`);
       setFetchedAt(new Date().toISOString());
-    } catch (err) {
-      setError("News fetch error: " + err.message);
-    } finally {
-      setLoading(false);
+    // Show partial errors if some sources failed but we got data
+    if (sourceErrors.length && allArticles.length === 0) {
+      setError("All sources failed: " + sourceErrors.join(" | "));
+    } else if (sourceErrors.length) {
+      console.warn("Some sources failed:", sourceErrors.join(", "));
     }
+
+    const seen = new Set();
+    const unique = allArticles
+      .filter(e=>{const k=e.headline.slice(0,60);if(seen.has(k))return false;seen.add(k);return true;})
+      .slice(0, eventCount);
+    const activeSources = [newsApiAiKey&&"NewsAPI.ai",guardianKey&&"Guardian",gnewsKey&&"GNews",newsDataKey&&"NewsData.io"].filter(Boolean);
+    setEvents(unique);
+    setMood(calcMood(unique));
+    setSummary((unique.length||"No")+" events · "+activeSources.join(", "));
+    setFetchedAt(new Date().toISOString());
+    setLoading(false);
   }, [newsApiAiKey, newsDataKey, guardianKey, gnewsKey, eventCount, proxyCall]);
 
   /* ── Derived stats ── */
