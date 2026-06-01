@@ -55,6 +55,7 @@
   <div id="root"></div>
 
   <script type="text/javascript">
+
 const {
   useState,
   useEffect,
@@ -1469,6 +1470,1446 @@ function currentsToEvent(art) {
   };
 }
 
+// Compiled standalone — variables come from App() closure
+// This file is just the mobile return statement + needed state additions
+
+function MobileApp({
+  T,
+  theme,
+  setTheme,
+  evs,
+  CATS,
+  cats,
+  setCats,
+  mode,
+  eventCount,
+  setEventCount,
+  loading,
+  scanBusy,
+  scanAction,
+  scanMsg,
+  error,
+  mood,
+  moodCol,
+  svgRef,
+  canvasRef,
+  newsApiAiKey,
+  setNewsApiAiKey,
+  guardianKey,
+  setGuardianKey,
+  gnewsKey,
+  setGnewsKey,
+  mediastackKey,
+  setMediastackKey,
+  newsorgKey,
+  setNewsorgKey,
+  currentsKey,
+  setCurrentsKey,
+  newsDataKey,
+  setNewsDataKey,
+  isZoomed
+}) {
+  const [mobileTab, setMobileTab] = React.useState('map');
+  const [mobileEvent, setMobileEvent] = React.useState(null);
+  const apiKeys = [{
+    label: 'NewsAPI.ai',
+    val: newsApiAiKey,
+    set: setNewsApiAiKey,
+    ph: 'eventregistry-key'
+  }, {
+    label: 'The Guardian',
+    val: guardianKey,
+    set: setGuardianKey,
+    ph: 'guardian-api-key'
+  }, {
+    label: 'GNews',
+    val: gnewsKey,
+    set: setGnewsKey,
+    ph: 'gnews-token'
+  }, {
+    label: 'MediaStack',
+    val: mediastackKey,
+    set: setMediastackKey,
+    ph: 'mediastack-key'
+  }, {
+    label: 'NewsAPI.org',
+    val: newsorgKey,
+    set: setNewsorgKey,
+    ph: 'newsapi-org-key'
+  }, {
+    label: 'CurrentsAPI',
+    val: currentsKey,
+    set: setCurrentsKey,
+    ph: 'currents-api-key'
+  }, {
+    label: 'NewsData.io',
+    val: newsDataKey,
+    set: setNewsDataKey,
+    ph: 'pub_xxx'
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100dvh',
+      background: T.bg,
+      fontFamily: "'Rajdhani',sans-serif",
+      color: T.text,
+      overflow: 'hidden',
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement("header", {
+    style: {
+      background: T.panelBg,
+      borderBottom: `1px solid ${T.border}`,
+      flexShrink: 0,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      padding: '0 14px',
+      minHeight: 52,
+      paddingTop: 'env(safe-area-inset-top,0px)'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 12,
+      fontWeight: 700,
+      letterSpacing: 2,
+      color: T.text,
+      lineHeight: 1
+    }
+  }, "SENTIENCE"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 7,
+      letterSpacing: 2,
+      color: T.accentText,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "GLOBAL IMPACT")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflow: 'hidden'
+    }
+  }, loading && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: T.accentText,
+      fontFamily: "'JetBrains Mono',monospace",
+      letterSpacing: 1,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis'
+    }
+  }, scanMsg || 'SCANNING...')), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setTheme(t => t === 'dark' ? 'light' : 'dark'),
+    style: {
+      background: 'none',
+      border: 'none',
+      color: T.accentText,
+      cursor: 'pointer',
+      fontSize: 20,
+      padding: '4px',
+      lineHeight: 1,
+      flexShrink: 0
+    }
+  }, theme === 'dark' ? '☀' : '🌙'), /*#__PURE__*/React.createElement("button", {
+    onClick: scanAction,
+    disabled: scanBusy,
+    style: {
+      background: scanBusy ? T.accentDim : isZoomed ? '#00aa66' : '#2a72e0',
+      border: 'none',
+      color: '#fff',
+      borderRadius: 8,
+      padding: '9px 16px',
+      cursor: scanBusy ? 'not-allowed' : 'pointer',
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 9,
+      letterSpacing: 1.5,
+      fontWeight: 700,
+      flexShrink: 0,
+      boxShadow: scanBusy ? 'none' : '0 2px 8px rgba(0,0,0,0.3)'
+    }
+  }, scanBusy ? '...' : isZoomed ? '⊕ AREA' : `⟳ SCAN`)), error && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: '#ff222233',
+      borderBottom: '1px solid #ff222288',
+      padding: '6px 14px',
+      fontSize: 11,
+      color: '#ff7777',
+      fontFamily: "'JetBrains Mono',monospace",
+      flexShrink: 0
+    }
+  }, error), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflow: 'hidden',
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      display: mobileTab === 'map' ? 'flex' : 'none',
+      flexDirection: 'column'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    ref: svgRef,
+    style: {
+      width: '100%',
+      height: '100%',
+      display: 'block'
+    }
+  }), /*#__PURE__*/React.createElement("canvas", {
+    ref: canvasRef,
+    style: {
+      position: 'absolute',
+      inset: 0,
+      width: '100%',
+      height: '100%',
+      pointerEvents: 'none'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      display: 'flex',
+      gap: 8,
+      alignItems: 'center'
+    }
+  }, mood !== null && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: T.panelBg + 'ee',
+      border: `1px solid ${moodCol}55`,
+      borderRadius: 20,
+      padding: '5px 12px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 7,
+      backdropFilter: 'blur(4px)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      background: moodCol,
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: moodCol,
+      fontFamily: "'JetBrains Mono',monospace",
+      fontWeight: 700
+    }
+  }, mood > 0 ? '+' : '', mood)), evs.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: T.panelBg + 'ee',
+      border: `1px solid ${T.border}`,
+      borderRadius: 20,
+      padding: '5px 10px',
+      fontSize: 10,
+      color: T.textSec,
+      fontFamily: "'JetBrains Mono',monospace",
+      backdropFilter: 'blur(4px)'
+    }
+  }, evs.length, " events")), evs.length > 0 && !mobileEvent && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMobileTab('feed'),
+    style: {
+      position: 'absolute',
+      bottom: 10,
+      right: 10,
+      background: T.panelBg + 'ee',
+      border: `1px solid ${T.border}`,
+      borderRadius: 20,
+      padding: '7px 14px',
+      fontSize: 11,
+      color: T.accentText,
+      cursor: 'pointer',
+      fontFamily: "'Orbitron',sans-serif",
+      letterSpacing: 1,
+      backdropFilter: 'blur(4px)'
+    }
+  }, "\uD83D\uDCF0 FEED")), mobileEvent && (() => {
+    const cat = CATS[mobileEvent.category] || {};
+    const col = cat.rgb ? `rgb(${cat.rgb.join(',')})` : '#3a8aff';
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: T.panelBg,
+        borderTop: `2px solid ${col}`,
+        padding: '14px 16px',
+        paddingBottom: 'max(14px,env(safe-area-inset-bottom,14px))',
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        color: col,
+        fontFamily: "'Orbitron',sans-serif",
+        letterSpacing: 1,
+        marginBottom: 5
+      }
+    }, cat.icon, " ", cat.label, " \xB7 ", mobileEvent.intensity, "/10"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 600,
+        lineHeight: 1.4,
+        marginBottom: 6,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical'
+      }
+    }, mobileEvent.headline), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: T.textSec,
+        marginBottom: mobileEvent.url ? 8 : 0
+      }
+    }, "\uD83D\uDCCD ", mobileEvent.country, mobileEvent.source && /*#__PURE__*/React.createElement("span", {
+      style: {
+        marginLeft: 8,
+        opacity: 0.7
+      }
+    }, "\xB7 ", mobileEvent.source)), mobileEvent.url && /*#__PURE__*/React.createElement("a", {
+      href: mobileEvent.url,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      style: {
+        fontSize: 11,
+        color: T.accentText,
+        textDecoration: 'none'
+      }
+    }, "Read article \u2192")), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setMobileEvent(null),
+      style: {
+        background: 'none',
+        border: 'none',
+        color: T.textMuted,
+        fontSize: 22,
+        cursor: 'pointer',
+        padding: 0,
+        lineHeight: 1,
+        flexShrink: 0,
+        marginTop: -2
+      }
+    }, "\xD7")));
+  })()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      display: mobileTab === 'feed' ? 'flex' : 'none',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '10px 14px',
+      borderBottom: `1px solid ${T.border}`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      letterSpacing: 2,
+      color: T.accentText
+    }
+  }, "LIVE FEED"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textSec
+    }
+  }, evs.length, " events")), evs.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 14,
+      color: T.textMuted,
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 40
+    }
+  }, "\uD83D\uDCE1"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      letterSpacing: 2
+    }
+  }, "NO DATA"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      textAlign: 'center',
+      maxWidth: 220,
+      lineHeight: 1.6
+    }
+  }, "Tap SCAN in the header to load global events")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch'
+    }
+  }, evs.map(ev => {
+    const cat = CATS[ev.category] || {};
+    const col = cat.rgb ? `rgb(${cat.rgb.join(',')})` : '#3a8aff';
+    return /*#__PURE__*/React.createElement("div", {
+      key: ev.id,
+      onClick: () => {
+        setMobileTab('map');
+        setMobileEvent(ev);
+      },
+      style: {
+        padding: '12px 14px',
+        borderBottom: `1px solid ${T.border2}`,
+        cursor: 'pointer',
+        display: 'flex',
+        gap: 12,
+        alignItems: 'flex-start',
+        WebkitTapHighlightColor: 'transparent'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: 9,
+        flexShrink: 0,
+        background: col + '22',
+        border: `1px solid ${col}55`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 18
+      }
+    }, cat.icon || '📰'), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        color: col,
+        fontFamily: "'Orbitron',sans-serif",
+        letterSpacing: 0.5,
+        marginBottom: 3
+      }
+    }, cat.label, " \xB7 ", ev.intensity, "/10"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        lineHeight: 1.4,
+        marginBottom: 4,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical'
+      }
+    }, ev.headline), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: T.textSec
+      }
+    }, "\uD83D\uDCCD ", ev.country, ev.source ? ' · ' + ev.source : '')), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: '50%',
+        background: col,
+        marginTop: 5,
+        flexShrink: 0
+      }
+    }));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 'env(safe-area-inset-bottom,16px)'
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      display: mobileTab === 'settings' ? 'flex' : 'none',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '10px 14px',
+      borderBottom: `1px solid ${T.border}`,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      letterSpacing: 2,
+      color: T.accentText
+    }
+  }, "SETTINGS")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      padding: '16px 14px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      fontFamily: "'Orbitron',sans-serif",
+      letterSpacing: 2,
+      color: T.accentText,
+      marginBottom: 12
+    }
+  }, "CATEGORIES"), Object.entries(CATS).map(([k, c]) => {
+    const col = c.rgb ? `rgb(${c.rgb.join(',')})` : '#3a8aff';
+    const on = !!cats[k];
+    return /*#__PURE__*/React.createElement("div", {
+      key: k,
+      onClick: () => setCats(p => ({
+        ...p,
+        [k]: !p[k]
+      })),
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '10px 0',
+        borderBottom: `1px solid ${T.border2}`,
+        cursor: 'pointer',
+        WebkitTapHighlightColor: 'transparent'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 34,
+        height: 34,
+        borderRadius: 8,
+        flexShrink: 0,
+        background: on ? col + '28' : T.inputBg,
+        border: `1px solid ${on ? col : T.border2}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 16
+      }
+    }, c.icon), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        fontSize: 14
+      }
+    }, c.label), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 44,
+        height: 26,
+        borderRadius: 13,
+        background: on ? '#2a72e0' : T.border2,
+        position: 'relative',
+        transition: 'background 0.2s',
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: 'absolute',
+        top: 3,
+        left: on ? 21 : 3,
+        width: 20,
+        height: 20,
+        borderRadius: '50%',
+        background: '#fff',
+        transition: 'left 0.15s',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+      }
+    })));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      fontFamily: "'Orbitron',sans-serif",
+      letterSpacing: 2,
+      color: T.accentText,
+      marginBottom: 8
+    }
+  }, "EVENT COUNT: ", eventCount), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: 5,
+    max: 100,
+    step: 5,
+    value: eventCount,
+    onChange: e => setEventCount(+e.target.value),
+    style: {
+      width: '100%',
+      accentColor: '#2a72e0',
+      height: 6
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      fontSize: 10,
+      color: T.textMuted,
+      marginTop: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "5"), /*#__PURE__*/React.createElement("span", null, "100"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      fontFamily: "'Orbitron',sans-serif",
+      letterSpacing: 2,
+      color: T.accentText,
+      marginBottom: 12
+    }
+  }, "API KEYS"), apiKeys.map(({
+    label,
+    val,
+    set,
+    ph
+  }) => /*#__PURE__*/React.createElement("div", {
+    key: label,
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textSec,
+      marginBottom: 5,
+      display: 'flex',
+      justifyContent: 'space-between'
+    }
+  }, /*#__PURE__*/React.createElement("span", null, label), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: val ? '#00aa66' : T.textMuted,
+      fontSize: 10
+    }
+  }, val ? '✓ active' : '○ not set')), /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: val,
+    onChange: e => set(e.target.value),
+    placeholder: ph,
+    style: {
+      width: '100%',
+      background: T.inputBg,
+      border: `1px solid ${val ? '#00aa66' : T.border2}`,
+      borderRadius: 8,
+      padding: '10px 12px',
+      color: T.text,
+      fontFamily: "'JetBrains Mono',monospace",
+      fontSize: 11,
+      outline: 'none'
+    }
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 'max(20px,env(safe-area-inset-bottom,20px))'
+    }
+  })))), /*#__PURE__*/React.createElement("nav", {
+    style: {
+      display: 'flex',
+      background: T.panelBg,
+      borderTop: `1px solid ${T.border}`,
+      flexShrink: 0,
+      paddingBottom: 'env(safe-area-inset-bottom,0px)'
+    }
+  }, [{
+    id: 'map',
+    icon: '🗺',
+    label: 'MAP'
+  }, {
+    id: 'feed',
+    icon: '📰',
+    label: evs.length ? `FEED (${evs.length})` : 'FEED'
+  }, {
+    id: 'settings',
+    icon: '⚙',
+    label: 'SETTINGS'
+  }].map(tab => /*#__PURE__*/React.createElement("button", {
+    key: tab.id,
+    onClick: () => setMobileTab(tab.id),
+    style: {
+      flex: 1,
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '10px 0 8px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 3,
+      borderTop: `2px solid ${mobileTab === tab.id ? T.accentText : 'transparent'}`,
+      color: mobileTab === tab.id ? T.accentText : T.textMuted,
+      transition: 'color 0.15s',
+      WebkitTapHighlightColor: 'transparent'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 20,
+      lineHeight: 1
+    }
+  }, tab.icon), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 8,
+      fontFamily: "'Orbitron',sans-serif",
+      letterSpacing: 1
+    }
+  }, tab.label)))));
+}
+
+// Compiled standalone — variables come from App() closure
+// This file is just the mobile return statement + needed state additions
+
+function MobileApp({
+  T,
+  theme,
+  setTheme,
+  evs,
+  CATS,
+  cats,
+  setCats,
+  mode,
+  eventCount,
+  setEventCount,
+  loading,
+  scanBusy,
+  scanAction,
+  scanMsg,
+  error,
+  mood,
+  moodCol,
+  svgRef,
+  canvasRef,
+  newsApiAiKey,
+  setNewsApiAiKey,
+  guardianKey,
+  setGuardianKey,
+  gnewsKey,
+  setGnewsKey,
+  mediastackKey,
+  setMediastackKey,
+  newsorgKey,
+  setNewsorgKey,
+  currentsKey,
+  setCurrentsKey,
+  newsDataKey,
+  setNewsDataKey,
+  isZoomed
+}) {
+  const [mobileTab, setMobileTab] = React.useState('map');
+  const [mobileEvent, setMobileEvent] = React.useState(null);
+  const apiKeys = [{
+    label: 'NewsAPI.ai',
+    val: newsApiAiKey,
+    set: setNewsApiAiKey,
+    ph: 'eventregistry-key'
+  }, {
+    label: 'The Guardian',
+    val: guardianKey,
+    set: setGuardianKey,
+    ph: 'guardian-api-key'
+  }, {
+    label: 'GNews',
+    val: gnewsKey,
+    set: setGnewsKey,
+    ph: 'gnews-token'
+  }, {
+    label: 'MediaStack',
+    val: mediastackKey,
+    set: setMediastackKey,
+    ph: 'mediastack-key'
+  }, {
+    label: 'NewsAPI.org',
+    val: newsorgKey,
+    set: setNewsorgKey,
+    ph: 'newsapi-org-key'
+  }, {
+    label: 'CurrentsAPI',
+    val: currentsKey,
+    set: setCurrentsKey,
+    ph: 'currents-api-key'
+  }, {
+    label: 'NewsData.io',
+    val: newsDataKey,
+    set: setNewsDataKey,
+    ph: 'pub_xxx'
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100dvh',
+      background: T.bg,
+      fontFamily: "'Rajdhani',sans-serif",
+      color: T.text,
+      overflow: 'hidden',
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement("header", {
+    style: {
+      background: T.panelBg,
+      borderBottom: `1px solid ${T.border}`,
+      flexShrink: 0,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      padding: '0 14px',
+      minHeight: 52,
+      paddingTop: 'env(safe-area-inset-top,0px)'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 12,
+      fontWeight: 700,
+      letterSpacing: 2,
+      color: T.text,
+      lineHeight: 1
+    }
+  }, "SENTIENCE"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 7,
+      letterSpacing: 2,
+      color: T.accentText,
+      fontFamily: "'JetBrains Mono',monospace"
+    }
+  }, "GLOBAL IMPACT")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflow: 'hidden'
+    }
+  }, loading && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: T.accentText,
+      fontFamily: "'JetBrains Mono',monospace",
+      letterSpacing: 1,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis'
+    }
+  }, scanMsg || 'SCANNING...')), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setTheme(t => t === 'dark' ? 'light' : 'dark'),
+    style: {
+      background: 'none',
+      border: 'none',
+      color: T.accentText,
+      cursor: 'pointer',
+      fontSize: 20,
+      padding: '4px',
+      lineHeight: 1,
+      flexShrink: 0
+    }
+  }, theme === 'dark' ? '☀' : '🌙'), /*#__PURE__*/React.createElement("button", {
+    onClick: scanAction,
+    disabled: scanBusy,
+    style: {
+      background: scanBusy ? T.accentDim : isZoomed ? '#00aa66' : '#2a72e0',
+      border: 'none',
+      color: '#fff',
+      borderRadius: 8,
+      padding: '9px 16px',
+      cursor: scanBusy ? 'not-allowed' : 'pointer',
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 9,
+      letterSpacing: 1.5,
+      fontWeight: 700,
+      flexShrink: 0,
+      boxShadow: scanBusy ? 'none' : '0 2px 8px rgba(0,0,0,0.3)'
+    }
+  }, scanBusy ? '...' : isZoomed ? '⊕ AREA' : `⟳ SCAN`)), error && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: '#ff222233',
+      borderBottom: '1px solid #ff222288',
+      padding: '6px 14px',
+      fontSize: 11,
+      color: '#ff7777',
+      fontFamily: "'JetBrains Mono',monospace",
+      flexShrink: 0
+    }
+  }, error), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflow: 'hidden',
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      display: mobileTab === 'map' ? 'flex' : 'none',
+      flexDirection: 'column'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    ref: svgRef,
+    style: {
+      width: '100%',
+      height: '100%',
+      display: 'block'
+    }
+  }), /*#__PURE__*/React.createElement("canvas", {
+    ref: canvasRef,
+    style: {
+      position: 'absolute',
+      inset: 0,
+      width: '100%',
+      height: '100%',
+      pointerEvents: 'none'
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      display: 'flex',
+      gap: 8,
+      alignItems: 'center'
+    }
+  }, mood !== null && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: T.panelBg + 'ee',
+      border: `1px solid ${moodCol}55`,
+      borderRadius: 20,
+      padding: '5px 12px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 7,
+      backdropFilter: 'blur(4px)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      background: moodCol,
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: moodCol,
+      fontFamily: "'JetBrains Mono',monospace",
+      fontWeight: 700
+    }
+  }, mood > 0 ? '+' : '', mood)), evs.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: T.panelBg + 'ee',
+      border: `1px solid ${T.border}`,
+      borderRadius: 20,
+      padding: '5px 10px',
+      fontSize: 10,
+      color: T.textSec,
+      fontFamily: "'JetBrains Mono',monospace",
+      backdropFilter: 'blur(4px)'
+    }
+  }, evs.length, " events")), evs.length > 0 && !mobileEvent && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMobileTab('feed'),
+    style: {
+      position: 'absolute',
+      bottom: 10,
+      right: 10,
+      background: T.panelBg + 'ee',
+      border: `1px solid ${T.border}`,
+      borderRadius: 20,
+      padding: '7px 14px',
+      fontSize: 11,
+      color: T.accentText,
+      cursor: 'pointer',
+      fontFamily: "'Orbitron',sans-serif",
+      letterSpacing: 1,
+      backdropFilter: 'blur(4px)'
+    }
+  }, "\uD83D\uDCF0 FEED")), mobileEvent && (() => {
+    const cat = CATS[mobileEvent.category] || {};
+    const col = cat.rgb ? `rgb(${cat.rgb.join(',')})` : '#3a8aff';
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: T.panelBg,
+        borderTop: `2px solid ${col}`,
+        padding: '14px 16px',
+        paddingBottom: 'max(14px,env(safe-area-inset-bottom,14px))',
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        color: col,
+        fontFamily: "'Orbitron',sans-serif",
+        letterSpacing: 1,
+        marginBottom: 5
+      }
+    }, cat.icon, " ", cat.label, " \xB7 ", mobileEvent.intensity, "/10"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 600,
+        lineHeight: 1.4,
+        marginBottom: 6,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical'
+      }
+    }, mobileEvent.headline), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: T.textSec,
+        marginBottom: mobileEvent.url ? 8 : 0
+      }
+    }, "\uD83D\uDCCD ", mobileEvent.country, mobileEvent.source && /*#__PURE__*/React.createElement("span", {
+      style: {
+        marginLeft: 8,
+        opacity: 0.7
+      }
+    }, "\xB7 ", mobileEvent.source)), mobileEvent.url && /*#__PURE__*/React.createElement("a", {
+      href: mobileEvent.url,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      style: {
+        fontSize: 11,
+        color: T.accentText,
+        textDecoration: 'none'
+      }
+    }, "Read article \u2192")), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setMobileEvent(null),
+      style: {
+        background: 'none',
+        border: 'none',
+        color: T.textMuted,
+        fontSize: 22,
+        cursor: 'pointer',
+        padding: 0,
+        lineHeight: 1,
+        flexShrink: 0,
+        marginTop: -2
+      }
+    }, "\xD7")));
+  })()), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      display: mobileTab === 'feed' ? 'flex' : 'none',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '10px 14px',
+      borderBottom: `1px solid ${T.border}`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      letterSpacing: 2,
+      color: T.accentText
+    }
+  }, "LIVE FEED"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textSec
+    }
+  }, evs.length, " events")), evs.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 14,
+      color: T.textMuted,
+      padding: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 40
+    }
+  }, "\uD83D\uDCE1"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      letterSpacing: 2
+    }
+  }, "NO DATA"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      textAlign: 'center',
+      maxWidth: 220,
+      lineHeight: 1.6
+    }
+  }, "Tap SCAN in the header to load global events")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch'
+    }
+  }, evs.map(ev => {
+    const cat = CATS[ev.category] || {};
+    const col = cat.rgb ? `rgb(${cat.rgb.join(',')})` : '#3a8aff';
+    return /*#__PURE__*/React.createElement("div", {
+      key: ev.id,
+      onClick: () => {
+        setMobileTab('map');
+        setMobileEvent(ev);
+      },
+      style: {
+        padding: '12px 14px',
+        borderBottom: `1px solid ${T.border2}`,
+        cursor: 'pointer',
+        display: 'flex',
+        gap: 12,
+        alignItems: 'flex-start',
+        WebkitTapHighlightColor: 'transparent'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 38,
+        height: 38,
+        borderRadius: 9,
+        flexShrink: 0,
+        background: col + '22',
+        border: `1px solid ${col}55`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 18
+      }
+    }, cat.icon || '📰'), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        color: col,
+        fontFamily: "'Orbitron',sans-serif",
+        letterSpacing: 0.5,
+        marginBottom: 3
+      }
+    }, cat.label, " \xB7 ", ev.intensity, "/10"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        lineHeight: 1.4,
+        marginBottom: 4,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical'
+      }
+    }, ev.headline), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: T.textSec
+      }
+    }, "\uD83D\uDCCD ", ev.country, ev.source ? ' · ' + ev.source : '')), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: '50%',
+        background: col,
+        marginTop: 5,
+        flexShrink: 0
+      }
+    }));
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 'env(safe-area-inset-bottom,16px)'
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      inset: 0,
+      display: mobileTab === 'settings' ? 'flex' : 'none',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '10px 14px',
+      borderBottom: `1px solid ${T.border}`,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Orbitron',sans-serif",
+      fontSize: 11,
+      letterSpacing: 2,
+      color: T.accentText
+    }
+  }, "SETTINGS")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch',
+      padding: '16px 14px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      fontFamily: "'Orbitron',sans-serif",
+      letterSpacing: 2,
+      color: T.accentText,
+      marginBottom: 12
+    }
+  }, "CATEGORIES"), Object.entries(CATS).map(([k, c]) => {
+    const col = c.rgb ? `rgb(${c.rgb.join(',')})` : '#3a8aff';
+    const on = !!cats[k];
+    return /*#__PURE__*/React.createElement("div", {
+      key: k,
+      onClick: () => setCats(p => ({
+        ...p,
+        [k]: !p[k]
+      })),
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '10px 0',
+        borderBottom: `1px solid ${T.border2}`,
+        cursor: 'pointer',
+        WebkitTapHighlightColor: 'transparent'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 34,
+        height: 34,
+        borderRadius: 8,
+        flexShrink: 0,
+        background: on ? col + '28' : T.inputBg,
+        border: `1px solid ${on ? col : T.border2}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 16
+      }
+    }, c.icon), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        fontSize: 14
+      }
+    }, c.label), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 44,
+        height: 26,
+        borderRadius: 13,
+        background: on ? '#2a72e0' : T.border2,
+        position: 'relative',
+        transition: 'background 0.2s',
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: 'absolute',
+        top: 3,
+        left: on ? 21 : 3,
+        width: 20,
+        height: 20,
+        borderRadius: '50%',
+        background: '#fff',
+        transition: 'left 0.15s',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+      }
+    })));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      fontFamily: "'Orbitron',sans-serif",
+      letterSpacing: 2,
+      color: T.accentText,
+      marginBottom: 8
+    }
+  }, "EVENT COUNT: ", eventCount), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: 5,
+    max: 100,
+    step: 5,
+    value: eventCount,
+    onChange: e => setEventCount(+e.target.value),
+    style: {
+      width: '100%',
+      accentColor: '#2a72e0',
+      height: 6
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      fontSize: 10,
+      color: T.textMuted,
+      marginTop: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", null, "5"), /*#__PURE__*/React.createElement("span", null, "100"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      fontFamily: "'Orbitron',sans-serif",
+      letterSpacing: 2,
+      color: T.accentText,
+      marginBottom: 12
+    }
+  }, "API KEYS"), apiKeys.map(({
+    label,
+    val,
+    set,
+    ph
+  }) => /*#__PURE__*/React.createElement("div", {
+    key: label,
+    style: {
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textSec,
+      marginBottom: 5,
+      display: 'flex',
+      justifyContent: 'space-between'
+    }
+  }, /*#__PURE__*/React.createElement("span", null, label), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: val ? '#00aa66' : T.textMuted,
+      fontSize: 10
+    }
+  }, val ? '✓ active' : '○ not set')), /*#__PURE__*/React.createElement("input", {
+    type: "password",
+    value: val,
+    onChange: e => set(e.target.value),
+    placeholder: ph,
+    style: {
+      width: '100%',
+      background: T.inputBg,
+      border: `1px solid ${val ? '#00aa66' : T.border2}`,
+      borderRadius: 8,
+      padding: '10px 12px',
+      color: T.text,
+      fontFamily: "'JetBrains Mono',monospace",
+      fontSize: 11,
+      outline: 'none'
+    }
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 'max(20px,env(safe-area-inset-bottom,20px))'
+    }
+  })))), /*#__PURE__*/React.createElement("nav", {
+    style: {
+      display: 'flex',
+      background: T.panelBg,
+      borderTop: `1px solid ${T.border}`,
+      flexShrink: 0,
+      paddingBottom: 'env(safe-area-inset-bottom,0px)'
+    }
+  }, [{
+    id: 'map',
+    icon: '🗺',
+    label: 'MAP'
+  }, {
+    id: 'feed',
+    icon: '📰',
+    label: evs.length ? `FEED (${evs.length})` : 'FEED'
+  }, {
+    id: 'settings',
+    icon: '⚙',
+    label: 'SETTINGS'
+  }].map(tab => /*#__PURE__*/React.createElement("button", {
+    key: tab.id,
+    onClick: () => setMobileTab(tab.id),
+    style: {
+      flex: 1,
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '10px 0 8px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 3,
+      borderTop: `2px solid ${mobileTab === tab.id ? T.accentText : 'transparent'}`,
+      color: mobileTab === tab.id ? T.accentText : T.textMuted,
+      transition: 'color 0.15s',
+      WebkitTapHighlightColor: 'transparent'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 20,
+      lineHeight: 1
+    }
+  }, tab.icon), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 8,
+      fontFamily: "'Orbitron',sans-serif",
+      letterSpacing: 1
+    }
+  }, tab.label)))));
+}
+
 function App() {
   var _CATS$focusedCat, _CATS$focusedCat2, _CATS$focusedCat3;
   /* ── API key (stored in sessionStorage for convenience) ── */
@@ -1638,6 +3079,7 @@ function App() {
   const [posPreset, setPosPreset] = useState("balanced");
   const [theme, setTheme] = useState("dark");
   const themeRef = useRef("dark");
+  const [feedH, setFeedH] = useState(240);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [mobileTab, setMobileTab] = useState("map"); // map | feed | settings
   const [showFilters, setShowFilters] = useState(false);
@@ -1708,9 +3150,10 @@ function App() {
 
   /* ── Draw SVG base map ── */
   const renderBase = useCallback(() => {
-    if (!ready || !mapRef.current || !svgRef.current || !canRef.current) return;
-    const w = mapRef.current.clientWidth;
-    const h = mapRef.current.clientHeight;
+    if (!ready || !svgRef.current || !canRef.current) return;
+    const container = mapRef.current || svgRef.current.parentElement;
+    const w = container ? container.clientWidth : svgRef.current.clientWidth;
+    const h = container ? container.clientHeight : svgRef.current.clientHeight;
     if (!w || !h) return;
     const TM = THEMES[themeRef.current];
     const proj = d3.geoNaturalEarth1().scale(w / 6.4).translate([w / 2, h / 2]);
@@ -1735,7 +3178,7 @@ function App() {
   }, [ready]);
   useEffect(() => {
     renderBase();
-  }, [renderBase]);
+  }, [renderBase, dims]);
 
   /* ── Sync theme ref and redraw map when theme changes ── */
   useEffect(() => {
@@ -1993,7 +3436,7 @@ function App() {
       }
       if (newsDataKey && allArticles.length < 20) {
         const cc = regionCC ? regionCC[0].toLowerCase() : "";
-        const url = `https://newsdata.io/api/1/latest?apikey=${newsDataKey}&language=en${cc ? `&country=${cc}` : ""}&size=30`;
+        const url = `https://newsdata.io/api/1/latest?apikey=${newsDataKey}&language=en${cc ? `&country=${cc}` : ""}`;
         const res = await proxyCall(url, undefined, "GET");
         const d = await res.json();
         ((d === null || d === void 0 ? void 0 : d.results) || []).forEach(a => {
@@ -2034,7 +3477,7 @@ function App() {
           action:"getArticles",
           keyword: NEG_KW + " OR " + POS_KW,
           lang:"eng",
-          articlesCount: Math.min(eventCount, 100),
+          articlesCount: Math.min(eventCount * 2, 200),
           articlesSortBy:"date",
           apiKey: newsApiAiKey.trim()
         });
@@ -2047,7 +3490,7 @@ function App() {
     if (guardianKey && guardianKey.trim()) {
       try {
         setScanMsg("Scanning The Guardian...");
-        const gUrl = "https://content.guardianapis.com/search?api-key="+guardianKey.trim()+"&section=world&show-fields=trailText&order-by=newest&page-size=50&q=war+OR+attack+OR+crisis+OR+disaster+OR+conflict+OR+peace+OR+election+OR+protest";
+        const gUrl = "https://content.guardianapis.com/search?api-key="+guardianKey.trim()+"&section=world&show-fields=trailText&order-by=newest&page-size=100&q=war+OR+attack+OR+crisis+OR+disaster+OR+conflict+OR+peace+OR+election+OR+protest";
         const gRes = await proxyCall(gUrl, null, "GET");
         const gD = await gRes.json();
         ((gD?.response?.results)||[]).forEach(a=>{const ev=guardianToEvent(a);if(ev)allArticles.push(ev);});
@@ -2084,7 +3527,7 @@ function App() {
       try {
         setScanMsg("Scanning NewsAPI.org...");
         const noUrl = "https://newsapi.org/v2/everything?apiKey=" + newsorgKey.trim() + "&language=en&sortBy=publishedAt&pageSize=100&q=war+OR+attack+OR+crisis+OR+disaster+OR+conflict+OR+peace+OR+election+OR+protest+OR+earthquake+OR+shooting";
-        const noRes = await proxyCall(noUrl, null, "GET");
+        const noRes = await proxyCall(noUrl, null, "GET", {"User-Agent":"Mozilla/5.0 (compatible; Sentience/1.0)"});
         const noD = await noRes.json();
         (noD?.articles || []).forEach(a => { const ev = newsorgToEvent(a); if (ev) allArticles.push(ev); });
       } catch(e) { sourceErrors.push("NewsAPI.org: " + e.message.slice(0, 80)); console.warn("NewsAPI.org failed:", e.message); }
@@ -2105,7 +3548,7 @@ function App() {
     if (newsDataKey && newsDataKey.trim()) {
       try {
         setScanMsg("Scanning NewsData.io...");
-        const ndUrl = "https://newsdata.io/api/1/latest?apikey="+newsDataKey.trim()+"&language=en&size=50";
+        const ndUrl = "https://newsdata.io/api/1/latest?apikey="+newsDataKey.trim()+"&language=en";
         const ndRes = await proxyCall(ndUrl, null, "GET");
         const ndD = await ndRes.json();
         (ndD?.results||[]).forEach(a=>{const ev=ndToEvent(a);if(ev)allArticles.push(ev);});
@@ -2172,1307 +3615,17 @@ function App() {
   const tipY = tooltip ? tooltip.y + 200 > window.innerHeight ? tooltip.y - 208 : tooltip.y - 8 : 0;
 
   /* ─────────────────────── MOBILE LAYOUT ─────────────────────── */
-  if (isMobile) return /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      height: "100dvh",
-      background: T.bg,
-      fontFamily: "'Rajdhani',sans-serif",
-      color: T.text,
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("header", {
-    style: {
-      background: T.panelBg,
-      borderBottom: `1px solid ${T.border}`,
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      padding: "6px 12px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: 2,
-      color: T.text
-    }
-  }, "SENTIENCE"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 7,
-      letterSpacing: 2,
-      color: theme === "dark" ? "#3a8aff" : "#1a3a6a",
-      fontFamily: "'JetBrains Mono',monospace"
-    }
-  }, "HUMAN IMPACT")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setTheme(t => t === "dark" ? "light" : "dark"),
-    style: {
-      background: "none",
-      border: "none",
-      color: T.accentText,
-      cursor: "pointer",
-      fontSize: 18,
-      padding: "4px",
-      lineHeight: 1,
-      flexShrink: 0
-    }
-  }, theme === "dark" ? "☀" : "🌙"), /*#__PURE__*/React.createElement("button", {
-    onClick: scanAction,
-    disabled: scanBusy,
-    style: {
-      background: scanBusy ? T.accentDim : isZoomed ? theme === "light" ? "#0a6644" : "#00aa66" : theme === "light" ? "#1a5abf" : "#2a72e0",
-      border: "none",
-      color: "#ffffff",
-      borderRadius: 6,
-      padding: "9px 16px",
-      cursor: scanBusy ? "not-allowed" : "pointer",
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 9,
-      letterSpacing: 1.5,
-      whiteSpace: "nowrap",
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      boxShadow: scanBusy ? "none" : "0 2px 8px rgba(0,0,0,0.3)",
-      flexShrink: 0,
-      minWidth: 110,
-      justifyContent: "center"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: "inline-block",
-      animation: scanBusy ? "spin 1s linear infinite" : "none",
-      fontSize: 13
-    }
-  }, isZoomed ? "⊕" : "⟳"), /*#__PURE__*/React.createElement("span", null, scanLabel))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      padding: "4px 12px 8px"
-    }
-  }, [["both", "⊕ BOTH", T.accentText, T.cardBg2, T.accentDim], ["suffering", "◉ SUFFERING", T.neg, T.modeNegBg, theme === "dark" ? "#ff3030" : "#cc2020"], ["positivity", "◉ POSITIVE", T.pos, T.modePossBg, theme === "dark" ? "#00cc66" : "#006644"]].map(([m, label, col, bg, bord]) => /*#__PURE__*/React.createElement("button", {
-    key: m,
-    onClick: () => setMode(m),
-    style: {
-      flex: 1,
-      background: mode === m ? bg : "transparent",
-      border: `1px solid ${mode === m ? bord : T.border}`,
-      color: mode === m ? col : T.textMuted,
-      borderRadius: 4,
-      padding: "5px 0",
-      cursor: "pointer",
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 8,
-      letterSpacing: 0.8,
-      textAlign: "center"
-    }
-  }, label)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      overflow: "hidden",
-      position: "relative",
-      display: "flex",
-      flexDirection: "column"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: mobileTab === "map" ? "flex" : "none",
-      flex: 1,
-      flexDirection: "column",
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    ref: mapRef,
-    style: {
-      flex: 1,
-      position: "relative",
-      overflow: "hidden",
-      userSelect: "none",
-      WebkitUserSelect: "none"
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    ref: svgRef,
-    style: {
-      position: "absolute",
-      inset: 0,
-      width: "100%",
-      height: "100%",
-      cursor: dragging ? "grabbing" : "grab"
-    },
-    onMouseMove: onMove,
-    onMouseLeave: () => setTooltip(null),
-    onClick: onClick
-  }), /*#__PURE__*/React.createElement("canvas", {
-    ref: canRef,
-    style: {
-      position: "absolute",
-      inset: 0,
-      width: "100%",
-      height: "100%",
-      pointerEvents: "none"
-    }
-  }), !loading && events.length === 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 0,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 10,
-      pointerEvents: "none"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 11,
-      color: T.textDim,
-      letterSpacing: 3
-    }
-  }, "NO DATA"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: T.textDim
-    }
-  }, "Tap SCAN to load events")), loading && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 0,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: theme === "dark" ? "rgba(2,9,19,0.75)" : "rgba(240,244,248,0.8)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 11,
-      color: T.accentText,
-      letterSpacing: 3,
-      animation: "pulse 1.4s ease-in-out infinite"
-    }
-  }, "SCANNING...")), error && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      top: 60,
-      left: 12,
-      right: 12,
-      background: T.panelBg,
-      border: `1px solid ${T.neg}`,
-      borderRadius: 6,
-      padding: "10px 12px",
-      color: T.neg,
-      fontSize: 11,
-      fontFamily: "'JetBrains Mono',monospace",
-      zIndex: 10
-    }
-  }, error), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      top: 10,
-      left: 12,
-      display: "flex",
-      flexDirection: "column",
-      gap: 5,
-      zIndex: 10
-    }
-  }, [["＋", () => doZoom(1.8)], ["－", () => doZoom(1 / 1.8)], ["⊙", resetZoom], ["✕", () => {
-    setEvents([]);
-    setMood(null);
-    setSummary("");
-    setFetchedAt(null);
-    setMobileCard(null);
-    setVBounds(null);
-    setFocusedCat(null);
-    resetZoom();
-  }]].map(([label, fn]) => /*#__PURE__*/React.createElement("button", {
-    key: label,
-    onClick: fn,
-    style: {
-      width: 36,
-      height: 36,
-      background: theme === "dark" ? "rgba(3,12,30,0.92)" : "rgba(255,255,255,0.92)",
-      border: `1px solid ${label === "✕" ? T.neg : T.border}`,
-      borderRadius: 6,
-      color: label === "✕" ? T.neg : T.accentText,
-      cursor: "pointer",
-      fontSize: label === "✕" ? 13 : 16,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center"
-    }
-  }, label))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      top: 10,
-      left: 56,
-      display: "flex",
-      flexDirection: "column",
-      gap: 5,
-      alignItems: "flex-start",
-      zIndex: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: theme === "dark" ? "rgba(3,12,30,0.92)" : "rgba(255,255,255,0.92)",
-      border: `1px solid ${isZoomed ? T.pos : T.border}`,
-      borderRadius: 4,
-      padding: "3px 8px",
-      fontSize: 9,
-      fontFamily: "'JetBrains Mono',monospace",
-      color: isZoomed ? T.pos : T.accentDim
-    }
-  }, zoomK.toFixed(1), "\xD7")), events.length > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      bottom: 14,
-      left: 12,
-      display: "flex",
-      gap: 6,
-      alignItems: "center",
-      zIndex: 10
-    }
-  }, mood !== null && /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: theme === "dark" ? "rgba(3,12,30,0.9)" : "rgba(255,255,255,0.9)",
-      border: `1px solid ${T.border}`,
-      borderRadius: 4,
-      padding: "3px 8px",
-      fontSize: 11,
-      fontFamily: "'Orbitron',sans-serif",
-      fontWeight: 700,
-      color: moodCol
-    }
-  }, mood > 0 ? "+" : "", Math.round(mood)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: theme === "dark" ? "rgba(3,12,30,0.9)" : "rgba(255,255,255,0.9)",
-      border: `1px solid ${T.border}`,
-      borderRadius: 4,
-      padding: "3px 8px",
-      fontSize: 9,
-      fontFamily: "'JetBrains Mono',monospace",
-      color: T.textSec
-    }
-  }, evs.length, " events", visibleBounds ? " · REGION" : "")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowFilters(true),
-    style: {
-      position: "absolute",
-      bottom: 14,
-      right: 14,
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      background: T.accentDim,
-      border: `1px solid ${T.accent}`,
-      color: "#fff",
-      fontSize: 17,
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      boxShadow: "0 3px 12px rgba(0,0,0,0.3)",
-      zIndex: 10
-    }
-  }, "\u2699"), tooltip && !mobileCard && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "absolute",
-      top: 10,
-      left: "50%",
-      transform: "translateX(-50%)",
-      background: T.tooltipBg,
-      border: `1px solid ${T.border}`,
-      borderRadius: 6,
-      padding: "6px 12px",
-      maxWidth: "70%",
-      pointerEvents: "none",
-      zIndex: 50,
-      boxShadow: "0 4px 16px rgba(0,0,0,0.25)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: T.text,
-      lineHeight: 1.3,
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
-    }
-  }, tooltip.ev.headline), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: T.textMuted
-    }
-  }, "Tap to expand")))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: mobileTab === "feed" ? "flex" : "none",
-      flex: 1,
-      flexDirection: "column",
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "10px 14px",
-      borderBottom: `1px solid ${T.border}`,
-      background: T.panelBg,
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: summary ? 6 : 0
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 11,
-      color: T.accentText,
-      letterSpacing: 2
-    }
-  }, "EVENT FEED"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      alignItems: "center"
-    }
-  }, visibleBounds && /*#__PURE__*/React.createElement("button", {
-    onClick: resetZoom,
-    style: {
-      fontSize: 9,
-      color: T.pos,
-      border: `1px solid ${T.pos}`,
-      background: "none",
-      borderRadius: 3,
-      padding: "2px 7px",
-      cursor: "pointer",
-      fontFamily: "'JetBrains Mono',monospace"
-    }
-  }, "\u25C9 REGION"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10,
-      color: T.textMuted,
-      fontFamily: "'JetBrains Mono',monospace"
-    }
-  }, evs.length, " signals"))), summary && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: T.textMuted,
-      lineHeight: 1.4
-    }
-  }, summary)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      overflowY: "auto"
-    }
-  }, evs.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 24,
-      textAlign: "center",
-      color: T.textMuted,
-      fontSize: 13
-    }
-  }, "No events match current filters") : [...evs].sort((a, b) => b.adj - a.adj).map(ev => {
-    var _cat$label;
-    const cat = CATS[ev.category];
-    const [r, g, b2] = cat ? cat.rgb : [120, 160, 200];
-    return /*#__PURE__*/React.createElement("div", {
-      key: ev.id,
-      onClick: () => setMobileCard(ev),
-      style: {
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 12,
-        padding: "12px 14px",
-        borderBottom: `1px solid ${T.borderLight}`,
-        cursor: "pointer",
-        borderLeft: `3px solid rgb(${r},${g},${b2})`,
-        background: (mobileCard === null || mobileCard === void 0 ? void 0 : mobileCard.id) === ev.id ? T.cardBg2 : T.panelBg
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        flexShrink: 0,
-        textAlign: "center",
-        minWidth: 34
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontFamily: "'Orbitron',sans-serif",
-        fontSize: 15,
-        fontWeight: 700,
-        color: `rgb(${r},${g},${b2})`,
-        lineHeight: 1
-      }
-    }, ev.adj.toFixed(1)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 6,
-        height: 6,
-        borderRadius: "50%",
-        background: `rgb(${r},${g},${b2})`,
-        margin: "4px auto 0",
-        boxShadow: `0 0 4px rgb(${r},${g},${b2})`
-      }
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 9,
-        color: `rgb(${r},${g},${b2})`,
-        fontFamily: "'JetBrains Mono',monospace",
-        marginBottom: 3,
-        letterSpacing: 0.5
-      }
-    }, cat === null || cat === void 0 || (_cat$label = cat.label) === null || _cat$label === void 0 ? void 0 : _cat$label.toUpperCase()), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14,
-        fontWeight: 600,
-        color: T.text,
-        lineHeight: 1.35,
-        marginBottom: 3
-      }
-    }, ev.headline), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: T.textMuted
-      }
-    }, ev.country, ev.region ? ` · ${ev.region}` : ""), ev.url && /*#__PURE__*/React.createElement("a", {
-      href: ev.url,
-      onClick: e => e.stopPropagation(),
-      target: "_blank",
-      rel: "noreferrer",
-      style: {
-        fontSize: 10,
-        color: `rgba(${r},${g},${b2},0.8)`,
-        textDecoration: "none",
-        fontFamily: "'JetBrains Mono',monospace"
-      }
-    }, "\u2197"))));
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: mobileTab === "settings" ? "flex" : "none",
-      flex: 1,
-      flexDirection: "column",
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      overflowY: "auto",
-      padding: "16px 14px",
-      background: T.bg
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 11,
-      color: T.accentText,
-      marginBottom: 10,
-      letterSpacing: 2
-    }
-  }, "API KEYS"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: 5
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: T.text
-    }
-  }, "NewsAPI.ai"), /*#__PURE__*/React.createElement("a", {
-    href: "https://newsapi.ai",
-    target: "_blank",
-    style: {
-      fontSize: 10,
-      color: T.accentText
-    }
-  }, "Free key \u2192")), /*#__PURE__*/React.createElement("input", {
-    type: "password",
-    value: newsApiAiKey,
-    onChange: e => setNewsApiAiKey(e.target.value),
-    placeholder: "eventregistry-api-key",
-    style: {
-      width: "100%",
-      background: T.inputBg,
-      border: `1px solid ${newsApiAiKey ? "#00aa66" : T.border2}`,
-      borderRadius: 6,
-      padding: "10px 12px",
-      color: T.text,
-      fontFamily: "'JetBrains Mono',monospace",
-      fontSize: 12,
-      outline: "none"
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: 5
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: T.text
-    }
-  }, "NewsData.io"), /*#__PURE__*/React.createElement("a", {
-    href: "https://newsdata.io",
-    target: "_blank",
-    style: {
-      fontSize: 10,
-      color: T.accentText
-    }
-  }, "Free key \u2192")), /*#__PURE__*/React.createElement("input", {
-    type: "password",
-    value: newsDataKey,
-    onChange: e => setNewsDataKey(e.target.value),
-    placeholder: "pub_xxxxxxxxxxxxxxxx",
-    style: {
-      width: "100%",
-      background: T.inputBg,
-      border: `1px solid ${newsDataKey ? "#00aa66" : T.border2}`,
-      borderRadius: 6,
-      padding: "10px 12px",
-      color: T.text,
-      fontFamily: "'JetBrains Mono',monospace",
-      fontSize: 12,
-      outline: "none"
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: 5
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: T.text
-    }
-  }, "The Guardian"), /*#__PURE__*/React.createElement("a", {
-    href: "https://open-platform.theguardian.com/access",
-    target: "_blank",
-    style: {
-      fontSize: 10,
-      color: T.accentText
-    }
-  }, "Free key \u2192")), /*#__PURE__*/React.createElement("input", {
-    type: "password",
-    value: guardianKey,
-    onChange: e => setGuardianKey(e.target.value),
-    placeholder: "guardian-api-key",
-    style: {
-      width: "100%",
-      background: T.inputBg,
-      border: `1px solid ${guardianKey ? "#00aa66" : T.border2}`,
-      borderRadius: 6,
-      padding: "10px 12px",
-      color: T.text,
-      fontFamily: "'JetBrains Mono',monospace",
-      fontSize: 12,
-      outline: "none"
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      marginBottom: 5
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: T.text
-    }
-  }, "GNews"), /*#__PURE__*/React.createElement("a", {
-    href: "https://gnews.io",
-    target: "_blank",
-    style: {
-      fontSize: 10,
-      color: T.accentText
-    }
-  }, "Free key \u2192")), /*#__PURE__*/React.createElement("input", {
-    type: "password",
-    value: gnewsKey,
-    onChange: e => setGnewsKey(e.target.value),
-    placeholder: "gnews-token",
-    style: {
-      width: "100%",
-      background: T.inputBg,
-      border: `1px solid ${gnewsKey ? "#00aa66" : T.border2}`,
-      borderRadius: 6,
-      padding: "10px 12px",
-      color: T.text,
-      fontFamily: "'JetBrains Mono',monospace",
-      fontSize: 12,
-      outline: "none"
-    }
-  })), !(newsApiAiKey || newsDataKey || guardianKey || gnewsKey || mediastackKey || newsorgKey || currentsKey) && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: T.neg,
-      fontFamily: "'JetBrains Mono',monospace"
-    }
-  }, "\u26A0 At least one key required"), (newsApiAiKey || newsDataKey || guardianKey || gnewsKey || mediastackKey || newsorgKey || currentsKey) && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: "#00aa66",
-      fontFamily: "'JetBrains Mono',monospace"
-    }
-  }, "\u2713 ", [newsApiAiKey && "NewsAPI.ai", guardianKey && "Guardian", gnewsKey && "GNews", mediastackKey && "MediaStack", newsorgKey && "NewsAPI.org", currentsKey && "Currents", newsDataKey && "NewsData.io"].filter(Boolean).join(" + "), " active")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderTop: `1px solid ${T.border2}`,
-      margin: "12px 0"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 20
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 11,
-      color: T.accentText,
-      marginBottom: 8,
-      letterSpacing: 2
-    }
-  }, "EVENT VOLUME"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      background: T.inputBg,
-      border: `1px solid ${T.border2}`,
-      borderRadius: 6,
-      padding: "10px 14px"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10,
-      color: T.textMuted,
-      fontFamily: "'JetBrains Mono',monospace"
-    }
-  }, "5"), /*#__PURE__*/React.createElement("input", {
-    type: "range",
-    min: "5",
-    max: "100",
-    step: "5",
-    value: eventCount,
-    onChange: e => setEventCount(+e.target.value),
-    style: {
-      flex: 1,
-      accentColor: T.accentText
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10,
-      color: T.textMuted,
-      fontFamily: "'JetBrains Mono',monospace"
-    }
-  }, "100"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 17,
-      fontWeight: 700,
-      color: T.accentText,
-      minWidth: 28,
-      textAlign: "right"
-    }
-  }, eventCount)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      marginTop: 8,
-      flexWrap: "wrap"
-    }
-  }, [[15, "QUICK", T.textSec], [30, "STD", T.accentText], [60, "DETAIL", "#00cc88"], [100, "MAX", "#ffaa22"]].map(([v, label, col]) => /*#__PURE__*/React.createElement("button", {
-    key: v,
-    onClick: () => setEventCount(v),
-    style: {
-      background: eventCount === v ? T.cardBg2 : "transparent",
-      border: `1px solid ${eventCount === v ? col : col + "33"}`,
-      color: eventCount === v ? col : col + "88",
-      borderRadius: 4,
-      padding: "5px 10px",
-      cursor: "pointer",
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 9,
-      letterSpacing: 1
-    }
-  }, label, "\xB7", v)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderTop: `1px solid ${T.border2}`,
-      margin: "12px 0"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 11,
-      color: T.neg,
-      marginBottom: 8,
-      letterSpacing: 2
-    }
-  }, "SUFFERING FOCUS"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 6,
-      marginBottom: 12
-    }
-  }, Object.entries(SUF_PRESETS).map(([k, p]) => /*#__PURE__*/React.createElement("button", {
-    key: k,
-    onClick: () => applySufPreset(k),
-    style: {
-      background: sufPreset === k ? T.cardBg2 : "transparent",
-      border: `1px solid ${sufPreset === k ? T.neg : T.neg + "30"}`,
-      color: sufPreset === k ? T.neg : T.neg + "66",
-      borderRadius: 4,
-      padding: "6px 12px",
-      cursor: "pointer",
-      fontFamily: "'Rajdhani',sans-serif",
-      fontSize: 13,
-      fontWeight: 600
-    }
-  }, p.label))), /*#__PURE__*/React.createElement(WeightGroup, {
-    keys: NEG_KEYS,
-    weights: weights,
-    setWeights: setWeights,
-    label: "",
-    labelCol: T.neg,
-    onCustomize: () => setSufPreset("custom"),
-    T: T
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderTop: `1px solid ${T.border2}`,
-      margin: "12px 0"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 11,
-      color: T.pos,
-      marginBottom: 8,
-      letterSpacing: 2
-    }
-  }, "POSITIVITY FOCUS"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 6,
-      marginBottom: 12
-    }
-  }, Object.entries(POS_PRESETS).map(([k, p]) => /*#__PURE__*/React.createElement("button", {
-    key: k,
-    onClick: () => applyPosPreset(k),
-    style: {
-      background: posPreset === k ? T.cardBg2 : "transparent",
-      border: `1px solid ${posPreset === k ? T.pos : T.pos + "30"}`,
-      color: posPreset === k ? T.pos : T.pos + "66",
-      borderRadius: 4,
-      padding: "6px 12px",
-      cursor: "pointer",
-      fontFamily: "'Rajdhani',sans-serif",
-      fontSize: 13,
-      fontWeight: 600
-    }
-  }, p.label))), /*#__PURE__*/React.createElement(WeightGroup, {
-    keys: POS_KEYS,
-    weights: weights,
-    setWeights: setWeights,
-    label: "",
-    labelCol: T.pos,
-    onCustomize: () => setPosPreset("custom"),
-    T: T
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderTop: `1px solid ${T.border2}`,
-      margin: "12px 0"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 11,
-      color: T.accentText,
-      marginBottom: 10,
-      letterSpacing: 2
-    }
-  }, "APPEARANCE"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8
-    }
-  }, [["dark", "🌙 DARK"], ["light", "☀ LIGHT"]].map(([t, label]) => /*#__PURE__*/React.createElement("button", {
-    key: t,
-    onClick: () => setTheme(t),
-    style: {
-      flex: 1,
-      padding: "11px",
-      background: theme === t ? T.cardBg2 : "transparent",
-      border: `1px solid ${theme === t ? T.accentDim : T.border}`,
-      color: theme === t ? T.accentText : T.textMuted,
-      borderRadius: 6,
-      cursor: "pointer",
-      fontFamily: "'Rajdhani',sans-serif",
-      fontSize: 14,
-      fontWeight: 600
-    }
-  }, label)))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      setWeights(DEFAULT_W);
-      setSufPreset("balanced");
-      setPosPreset("balanced");
-    },
-    style: {
-      width: "100%",
-      background: T.cardBg,
-      border: `1px solid ${T.accentDim}`,
-      color: T.accentText,
-      borderRadius: 6,
-      padding: "11px",
-      cursor: "pointer",
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 10,
-      letterSpacing: 2
-    }
-  }, "RESET WEIGHTS TO DEFAULT")))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: scanMsg ? 22 : 0,
-      overflow: "hidden",
-      transition: "height 0.3s ease",
-      background: loading ? theme === "dark" ? "#041428" : "#e8f4ff" : T.cardBg,
-      borderTop: `1px solid ${loading ? T.accentDim + "66" : T.borderLight}`,
-      display: "flex",
-      alignItems: "center",
-      gap: 7,
-      padding: scanMsg ? "0 14px" : 0,
-      flexShrink: 0
-    }
-  }, loading && /*#__PURE__*/React.createElement("span", {
-    style: {
-      width: 6,
-      height: 6,
-      borderRadius: "50%",
-      background: T.accentText,
-      flexShrink: 0,
-      animation: "statusPulse 1s ease-in-out infinite"
-    }
-  }), !loading && scanMsg && /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: T.pos,
-      fontSize: 10,
-      flexShrink: 0
-    }
-  }, "\u2713"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 10,
-      fontFamily: "'JetBrains Mono',monospace",
-      color: loading ? T.accentText : T.pos,
-      letterSpacing: 0.5,
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
-    }
-  }, scanMsg)), /*#__PURE__*/React.createElement("nav", {
-    style: {
-      height: 58,
-      background: T.panelBg,
-      borderTop: `1px solid ${T.border}`,
-      display: "flex",
-      flexShrink: 0
-    }
-  }, [["map", "🗺", "MAP", null], ["feed", "📋", "FEED", evs.length > 0 ? evs.length : null], ["settings", "⚙", "SETTINGS", null]].map(([t, icon, label, badge]) => /*#__PURE__*/React.createElement("button", {
-    key: t,
-    onClick: () => {
-      setMobileTab(t);
-      if (t !== "map") setMobileCard(null);
-    },
-    style: {
-      flex: 1,
-      background: "none",
-      border: "none",
-      cursor: "pointer",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 2,
-      borderTop: `2px solid ${mobileTab === t ? T.accentText : "transparent"}`,
-      padding: "6px 0"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 20,
-      lineHeight: 1,
-      position: "relative"
-    }
-  }, icon, badge && /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      top: -3,
-      right: -10,
-      background: T.neg,
-      color: "#fff",
-      borderRadius: 10,
-      fontSize: 8,
-      padding: "1px 4px",
-      fontFamily: "'JetBrains Mono',monospace",
-      lineHeight: 1.5
-    }
-  }, badge > 99 ? "99+" : badge)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 8,
-      fontFamily: "'Orbitron',sans-serif",
-      letterSpacing: 1,
-      color: mobileTab === t ? T.accentText : T.textMuted
-    }
-  }, label)))), mobileCard && (_cat$label2 => {
-    const ev = mobileCard;
-    const cat = CATS[ev.category];
-    const [r, g, b] = cat ? cat.rgb : [70, 120, 180];
-    return /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: "fixed",
-        bottom: 58,
-        left: 0,
-        right: 0,
-        zIndex: 200,
-        background: T.tooltipBg,
-        borderTop: `2px solid rgb(${r},${g},${b})`,
-        borderRadius: "14px 14px 0 0",
-        maxHeight: "48vh",
-        overflowY: "auto",
-        boxShadow: "0 -8px 30px rgba(0,0,0,0.22)"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: "14px 16px"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        marginBottom: 10
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        paddingRight: 12
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 9,
-        color: `rgb(${r},${g},${b})`,
-        letterSpacing: 1.5,
-        fontFamily: "'JetBrains Mono',monospace",
-        marginBottom: 4
-      }
-    }, cat === null || cat === void 0 || (_cat$label2 = cat.label) === null || _cat$label2 === void 0 ? void 0 : _cat$label2.toUpperCase(), " \xB7 INT ", ev.adj.toFixed(1)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15,
-        fontWeight: 700,
-        color: T.text,
-        lineHeight: 1.35
-      }
-    }, ev.headline)), /*#__PURE__*/React.createElement("button", {
-      onClick: () => setMobileCard(null),
-      style: {
-        background: "none",
-        border: "none",
-        color: T.textMuted,
-        fontSize: 24,
-        cursor: "pointer",
-        lineHeight: 1,
-        padding: 0,
-        flexShrink: 0
-      }
-    }, "\xD7")), ev.description && /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: T.textSec,
-        lineHeight: 1.6,
-        marginBottom: 10
-      }
-    }, ev.description), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: ev.url ? 12 : 0
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12,
-        color: T.textMuted
-      }
-    }, ev.country, ev.region ? ` · ${ev.region}` : ""), ev.timestamp && /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 10,
-        color: T.textMuted,
-        fontFamily: "'JetBrains Mono',monospace"
-      }
-    }, ev.timestamp)), ev.url && /*#__PURE__*/React.createElement("a", {
-      href: ev.url,
-      target: "_blank",
-      rel: "noreferrer",
-      style: {
-        display: "block",
-        textAlign: "center",
-        padding: "11px",
-        background: T.cardBg,
-        border: `1px solid rgba(${r},${g},${b},0.5)`,
-        borderRadius: 8,
-        color: `rgb(${r},${g},${b})`,
-        fontSize: 11,
-        textDecoration: "none",
-        letterSpacing: 1.5,
-        fontFamily: "'Orbitron',sans-serif"
-      }
-    }, "\u2197 READ SOURCE ARTICLE")));
-  })(), showFilters && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "fixed",
-      inset: 0,
-      zIndex: 300,
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "flex-end"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    onClick: () => setShowFilters(false),
-    style: {
-      flex: 1,
-      background: "rgba(0,0,0,0.45)"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: T.panelBg,
-      borderRadius: "16px 16px 0 0",
-      maxHeight: "70vh",
-      overflow: "hidden",
-      display: "flex",
-      flexDirection: "column"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "12px 16px 10px",
-      borderBottom: `1px solid ${T.border}`,
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 11,
-      color: T.accentText,
-      letterSpacing: 2
-    }
-  }, "CATEGORY FILTERS"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowFilters(false),
-    style: {
-      background: T.accentDim,
-      border: "none",
-      color: "#fff",
-      borderRadius: 4,
-      padding: "7px 16px",
-      cursor: "pointer",
-      fontFamily: "'Orbitron',sans-serif",
-      fontSize: 9,
-      letterSpacing: 1.5
-    }
-  }, "DONE")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      overflowY: "auto",
-      padding: "12px 12px",
-      flex: 1
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      color: T.neg,
-      letterSpacing: 2,
-      marginBottom: 8,
-      fontFamily: "'JetBrains Mono',monospace"
-    }
-  }, "\u25C8 SUFFERING"), NEG_KEYS.map(k => {
-    const cat = CATS[k];
-    const [r, g, b] = cat.rgb;
-    const on = cats[k];
-    return /*#__PURE__*/React.createElement("label", {
-      key: k,
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "10px 10px",
-        marginBottom: 5,
-        borderRadius: 8,
-        cursor: "pointer",
-        background: on ? T.cardBg : T.bg,
-        border: `1px solid ${on ? T.border : "transparent"}`
-      }
-    }, /*#__PURE__*/React.createElement("input", {
-      type: "checkbox",
-      checked: on,
-      onChange: e => setCats(p => ({
-        ...p,
-        [k]: e.target.checked
-      })),
-      style: {
-        display: "none"
-      }
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 10,
-        height: 10,
-        borderRadius: "50%",
-        background: `rgb(${r},${g},${b})`,
-        flexShrink: 0,
-        boxShadow: on ? `0 0 5px rgb(${r},${g},${b})` : "none"
-      }
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 14,
-        color: on ? T.text : T.textMuted,
-        fontWeight: on ? 600 : 400,
-        flex: 1
-      }
-    }, cat.label), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12,
-        color: on ? `rgb(${r},${g},${b})` : T.textDim
-      }
-    }, "\u25CF"));
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderTop: `1px solid ${T.border}`,
-      margin: "10px 0"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      color: T.pos,
-      letterSpacing: 2,
-      marginBottom: 8,
-      fontFamily: "'JetBrains Mono',monospace"
-    }
-  }, "\u25C8 POSITIVITY"), POS_KEYS.map(k => {
-    const cat = CATS[k];
-    const [r, g, b] = cat.rgb;
-    const on = cats[k];
-    return /*#__PURE__*/React.createElement("label", {
-      key: k,
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "10px 10px",
-        marginBottom: 5,
-        borderRadius: 8,
-        cursor: "pointer",
-        background: on ? T.cardBg : T.bg,
-        border: `1px solid ${on ? T.border : "transparent"}`
-      }
-    }, /*#__PURE__*/React.createElement("input", {
-      type: "checkbox",
-      checked: on,
-      onChange: e => setCats(p => ({
-        ...p,
-        [k]: e.target.checked
-      })),
-      style: {
-        display: "none"
-      }
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 10,
-        height: 10,
-        borderRadius: "50%",
-        background: `rgb(${r},${g},${b})`,
-        flexShrink: 0,
-        boxShadow: on ? `0 0 5px rgb(${r},${g},${b})` : "none"
-      }
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 14,
-        color: on ? T.text : T.textMuted,
-        fontWeight: on ? 600 : 400,
-        flex: 1
-      }
-    }, cat.label), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 12,
-        color: on ? `rgb(${r},${g},${b})` : T.textDim
-      }
-    }, "\u25CF"));
-  })))), /*#__PURE__*/React.createElement("style", null, `
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
-        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        @keyframes statusPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.7)}}
-        *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-      `));
+  if (isMobile) return /*#__PURE__*/React.createElement(MobileApp, {
+    T, theme, setTheme, evs, CATS, cats, setCats, mode,
+    eventCount, setEventCount, loading, scanBusy, scanAction,
+    scanMsg, error, mood, moodCol, svgRef, canRef, mapRef,
+    newsApiAiKey, setNewsApiAiKey, guardianKey, setGuardianKey,
+    gnewsKey, setGnewsKey, mediastackKey, setMediastackKey,
+    newsorgKey, setNewsorgKey, currentsKey, setCurrentsKey,
+    newsDataKey, setNewsDataKey, isZoomed,
+  });
 
-  /* ─────────────────────── RENDER ─────────────────────── */
+  
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -4154,8 +4307,23 @@ function App() {
       fontSize: 9
     }
   }, summary)), showFeed && /*#__PURE__*/React.createElement("div", {
+    onMouseDown: function(e) {
+      e.preventDefault();
+      var startY = e.clientY, startH = feedH;
+      var onMove = function(mv) { setFeedH(Math.max(80, Math.min(640, startH - (mv.clientY - startY)))); };
+      var onUp = function() { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    },
+    title: "Drag to resize",
+    style: { height: 7, cursor: "ns-resize", userSelect: "none", flexShrink: 0,
+      background: T.border2, display: "flex", alignItems: "center", justifyContent: "center" }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: { width: 36, height: 2, borderRadius: 1, background: T.textMuted, opacity: 0.5 }
+  })),
+  showFeed && /*#__PURE__*/React.createElement("div", {
     style: {
-      maxHeight: 240,
+      maxHeight: feedH,
       overflowY: "auto",
       borderTop: `1px solid ${T.borderLight}`
     }
@@ -5467,25 +5635,35 @@ try {
   if (s) s.innerHTML = '<div style="color:#ff6060;font-family:monospace;padding:30px">'
     + '<b>Mount error:</b><br>' + (e && e.message) + '</div>';
 }
+
 </script>
 
-  <script>
-    // Hide splash once React has rendered something into #root
-    const observer = new MutationObserver(() => {
-      if (document.getElementById("root").children.length > 0) {
-        const s = document.getElementById("splash");
-        s.classList.add("hide");
-        setTimeout(() => s.remove(), 600);
-        observer.disconnect();
-      }
-    });
-    observer.observe(document.getElementById("root"), { childList: true });
-
-    // Force-remove splash after 3s regardless — prevents infinite loading
-    setTimeout(function() {
+<script>
+  // Remove splash once React mounts
+  (function() {
+    function hideSplash() {
       var s = document.getElementById("splash");
       if (s) { s.classList.add("hide"); setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); }, 600); }
-    }, 2000);
-  </script>
+    }
+    // Watch for React rendering into #root
+    var obs = new MutationObserver(function() {
+      if (document.getElementById("root").children.length > 0) {
+        hideSplash(); obs.disconnect();
+      }
+    });
+    obs.observe(document.getElementById("root"), { childList: true });
+    // Force-clear after 2 seconds regardless
+    setTimeout(hideSplash, 2000);
+  })();
+
+  // Show JS errors on splash screen
+  window.addEventListener("error", function(e) {
+    var s = document.getElementById("splash");
+    if (s) s.innerHTML = "<div style=\"color:#ff6060;font-family:monospace;padding:24px;max-width:90vw;word-break:break-all\">"
+      + "<div style=\"font-size:14px;font-weight:bold;margin-bottom:10px\">⚠ Error</div>"
+      + "<div style=\"font-size:12px\">" + (e.message || "Unknown") + "</div>"
+      + "<div style=\"font-size:10px;color:#888;margin-top:6px\">" + (e.filename || "") + " line " + (e.lineno || "?") + "</div></div>";
+  });
+</script>
 </body>
 </html>
