@@ -263,8 +263,8 @@ const SUF_PRESETS = {
     desc: "All categories weighted equally"
   },
   combat: {
-    label: "Combat & Security",
-    desc: "War, terrorism and crime amplified"
+    label: "Risk Hotspots",
+    desc: "Conflict, terrorism and crime amplified"
   },
   humanitarian: {
     label: "Humanitarian",
@@ -3197,8 +3197,8 @@ function App() {
     const counts = {};
     events.forEach(e => {
       if (!cats[e.category]) return;
-      if (mode === "suffering" && e.sentiment === "positive") return;
-      if (mode === "positivity" && e.sentiment === "negative") return;
+      if (mode === "risk" && e.sentiment === "positive") return;
+      if (mode === "resilience" && e.sentiment === "negative") return;
       if (visibleBounds) {
         if (e.lat < visibleBounds.minLat || e.lat > visibleBounds.maxLat) return;
         if (e.lng < visibleBounds.minLng || e.lng > visibleBounds.maxLng) return;
@@ -3211,8 +3211,8 @@ function App() {
   /* ── Processed events — filtered to viewport + focusedCat when set ── */
   const evs = useMemo(() => events.filter(e => {
     if (!cats[e.category]) return false;
-    if (mode === "suffering" && e.sentiment === "positive") return false;
-    if (mode === "positivity" && e.sentiment === "negative") return false;
+    if (mode === "risk" && e.sentiment === "positive") return false;
+    if (mode === "resilience" && e.sentiment === "negative") return false;
     if (visibleBounds) {
       if (e.lat < visibleBounds.minLat || e.lat > visibleBounds.maxLat) return false;
       if (e.lng < visibleBounds.minLng || e.lng > visibleBounds.maxLng) return false;
@@ -3705,7 +3705,7 @@ function App() {
       display: "flex",
       gap: 4
     }
-  }, [["both", "⊕ BOTH", T.accentText, T.cardBg2, T.accentDim], ["suffering", "◉ SUFFERING", T.neg, T.modeNegBg, theme === "dark" ? "#ff3030" : "#cc2020"], ["positivity", "◉ POSITIVE", T.pos, T.modePossBg, theme === "dark" ? "#00cc66" : "#006644"]].map(([m, label, col, bg, bord]) => /*#__PURE__*/React.createElement("button", {
+  }, [["both", "⊕ BOTH", T.accentText, T.cardBg2, T.accentDim], ["risk", "◉ RISK EVENTS", T.neg, T.modeNegBg, theme === "dark" ? "#ff3030" : "#cc2020"], ["resilience", "◉ RESILIENCE", T.pos, T.modePossBg, theme === "dark" ? "#00cc66" : "#006644"]].map(([m, label, col, bg, bord]) => /*#__PURE__*/React.createElement("button", {
     key: m,
     onClick: () => setMode(m),
     style: {
@@ -3867,13 +3867,13 @@ function App() {
     }
   }, /*#__PURE__*/React.createElement(Stat, {
     val: negEvs.length,
-    label: "SUFFERING",
+    label: "RISK EVENTS",
     col: T.neg,
     bg: T.negBg,
     border: T.neg
   }), /*#__PURE__*/React.createElement(Stat, {
     val: posEvs.length,
-    label: "POSITIVE",
+    label: "RESILIENCE",
     col: T.pos,
     bg: T.posBg,
     border: T.pos
@@ -3938,7 +3938,7 @@ function App() {
     cats: cats,
     setCats: setCats,
     onToggleAll: () => toggleGroup("neg"),
-    label: "SUFFERING",
+    label: "RISK EVENTS",
     labelCol: T.neg,
     T: T,
     catCounts: catCounts,
@@ -3954,7 +3954,7 @@ function App() {
     cats: cats,
     setCats: setCats,
     onToggleAll: () => toggleGroup("pos"),
-    label: "POSITIVITY",
+    label: "RESILIENCE",
     labelCol: T.pos,
     T: T,
     catCounts: catCounts,
@@ -4143,7 +4143,7 @@ function App() {
       marginBottom: 5,
       fontFamily: "'JetBrains Mono',monospace"
     }
-  }, "LEGEND"), [["Human Suffering", "255,40,40"], ["Human Positivity", "0,180,100"]].map(([l, c]) => /*#__PURE__*/React.createElement("div", {
+  }, "LEGEND"), [["Risk Events", "255,40,40"], ["Resilience", "0,180,100"]].map(([l, c]) => /*#__PURE__*/React.createElement("div", {
     key: l,
     style: {
       display: "flex",
@@ -5012,7 +5012,7 @@ function App() {
       lineHeight: 1.7
     }
   }, "Formula: Displayed Intensity = Raw Intensity \xD7 (Weight / 7) \u2014 capped at 10"), /*#__PURE__*/React.createElement(PresetPicker, {
-    label: "SUFFERING FOCUS",
+    label: "RISK FOCUS",
     labelCol: T.neg,
     presets: SUF_PRESETS,
     active: sufPreset,
@@ -5022,7 +5022,7 @@ function App() {
     keys: NEG_KEYS,
     weights: weights,
     setWeights: setWeights,
-    label: "SUFFERING CATEGORIES",
+    label: "RISK EVENTS",
     labelCol: T.neg,
     onCustomize: () => setSufPreset("custom"),
     T: T
@@ -5032,7 +5032,7 @@ function App() {
       margin: "24px 0"
     }
   }), /*#__PURE__*/React.createElement(PresetPicker, {
-    label: "POSITIVITY FOCUS",
+    label: "RESILIENCE FOCUS",
     labelCol: T.pos,
     presets: POS_PRESETS,
     active: posPreset,
@@ -5042,7 +5042,7 @@ function App() {
     keys: POS_KEYS,
     weights: weights,
     setWeights: setWeights,
-    label: "POSITIVITY CATEGORIES",
+    label: "RESILIENCE EVENTS",
     labelCol: T.pos,
     onCustomize: () => setPosPreset("custom"),
     T: T
