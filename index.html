@@ -4,6 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>SENTIENCE — Global Human Impact Monitor</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="3" fill="%23040c1a"/><circle cx="16" cy="16" r="12.5" fill="none" stroke="%231a55ff" stroke-width="1.2" opacity="0.7"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="%231a55ff" stroke-width="1" opacity="0.9"/><line x1="3.5" y1="16" x2="28.5" y2="16" stroke="%231a55ff" stroke-width="0.8" opacity="0.5"/><line x1="16" y1="3.5" x2="16" y2="28.5" stroke="%231a55ff" stroke-width="0.8" opacity="0.5"/><polyline points="4,8.5 4,4 8.5,4" fill="none" stroke="%233d7fff" stroke-width="2" stroke-linecap="square"/><polyline points="23.5,4 28,4 28,8.5" fill="none" stroke="%233d7fff" stroke-width="2" stroke-linecap="square"/><polyline points="28,23.5 28,28 23.5,28" fill="none" stroke="%233d7fff" stroke-width="2" stroke-linecap="square"/><polyline points="8.5,28 4,28 4,23.5" fill="none" stroke="%233d7fff" stroke-width="2" stroke-linecap="square"/><line x1="16" y1="3.5" x2="16" y2="7" stroke="%234d8fff" stroke-width="2.5"/><line x1="16" y1="25" x2="16" y2="28.5" stroke="%234d8fff" stroke-width="2.5"/><line x1="3.5" y1="16" x2="7" y2="16" stroke="%234d8fff" stroke-width="2.5"/><line x1="25" y1="16" x2="28.5" y2="16" stroke="%234d8fff" stroke-width="2.5"/><circle cx="16" cy="16" r="2.5" fill="%234d8fff"/><circle cx="16" cy="16" r="0.9" fill="%23a0c4ff"/></svg>">
+  <link rel="alternate icon" href="data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="3" fill="%23040c1a"/><circle cx="16" cy="16" r="12.5" fill="none" stroke="%231a55ff" stroke-width="1.2" opacity="0.7"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="%231a55ff" stroke-width="1" opacity="0.9"/><line x1="3.5" y1="16" x2="28.5" y2="16" stroke="%231a55ff" stroke-width="0.8" opacity="0.5"/><line x1="16" y1="3.5" x2="16" y2="28.5" stroke="%231a55ff" stroke-width="0.8" opacity="0.5"/><polyline points="4,8.5 4,4 8.5,4" fill="none" stroke="%233d7fff" stroke-width="2" stroke-linecap="square"/><polyline points="23.5,4 28,4 28,8.5" fill="none" stroke="%233d7fff" stroke-width="2" stroke-linecap="square"/><polyline points="28,23.5 28,28 23.5,28" fill="none" stroke="%233d7fff" stroke-width="2" stroke-linecap="square"/><polyline points="8.5,28 4,28 4,23.5" fill="none" stroke="%233d7fff" stroke-width="2" stroke-linecap="square"/><line x1="16" y1="3.5" x2="16" y2="7" stroke="%234d8fff" stroke-width="2.5"/><line x1="16" y1="25" x2="16" y2="28.5" stroke="%234d8fff" stroke-width="2.5"/><line x1="3.5" y1="16" x2="7" y2="16" stroke="%234d8fff" stroke-width="2.5"/><line x1="25" y1="16" x2="28.5" y2="16" stroke="%234d8fff" stroke-width="2.5"/><circle cx="16" cy="16" r="2.5" fill="%234d8fff"/><circle cx="16" cy="16" r="0.9" fill="%23a0c4ff"/></svg>">
 
   <!-- React 18 -->
   <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -1507,7 +1509,9 @@ function MobileApp({
   setCurrentsKey,
   newsDataKey,
   setNewsDataKey,
-  isZoomed
+  isZoomed,
+  searchQuery,
+  setSearchQuery
 }) {
   const [mobileTab, setMobileTab] = React.useState('map');
   const [mobileEvent, setMobileEvent] = React.useState(null);
@@ -3080,6 +3084,7 @@ function App() {
   const [theme, setTheme] = useState("dark");
   const themeRef = useRef("dark");
   const [feedH, setFeedH] = useState(240);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [mobileTab, setMobileTab] = useState("map"); // map | feed | settings
   const [showFilters, setShowFilters] = useState(false);
@@ -3225,7 +3230,15 @@ function App() {
       ...e,
       adj: Math.min(10, Math.max(1, e.intensity * ((_weights$e$category = weights[e.category]) !== null && _weights$e$category !== void 0 ? _weights$e$category : 7) / 7))
     };
-  }), [events, cats, mode, weights, visibleBounds, focusedCat]);
+  }).filter(function(e) {
+    if (!searchQuery.trim()) return true;
+    var q = searchQuery.toLowerCase();
+    return (e.headline||"").toLowerCase().indexOf(q) >= 0 ||
+           (e.description||"").toLowerCase().indexOf(q) >= 0 ||
+           (e.country||"").toLowerCase().indexOf(q) >= 0 ||
+           (e.category||"").replace(/_/g," ").indexOf(q) >= 0 ||
+           (e.source||"").toLowerCase().indexOf(q) >= 0;
+  }), [events, cats, mode, weights, visibleBounds, focusedCat, searchQuery]);
 
   /* ── Draw heatmap (zoom-aware) ── */
   const drawHeatmap = useCallback(() => {
@@ -3490,7 +3503,7 @@ function App() {
     if (guardianKey && guardianKey.trim()) {
       try {
         setScanMsg("Scanning The Guardian...");
-        const gUrl = "https://content.guardianapis.com/search?api-key="+guardianKey.trim()+"&section=world&show-fields=trailText&order-by=newest&page-size=100&q=war+OR+attack+OR+crisis+OR+disaster+OR+conflict+OR+peace+OR+election+OR+protest";
+        const gUrl = "https://content.guardianapis.com/search?api-key="+guardianKey.trim()+"&section=world&show-fields=trailText&order-by=newest&page-size=50&q=war+OR+attack+OR+crisis+OR+disaster+OR+conflict+OR+peace+OR+election+OR+protest";
         const gRes = await proxyCall(gUrl, null, "GET");
         const gD = await gRes.json();
         ((gD?.response?.results)||[]).forEach(a=>{const ev=guardianToEvent(a);if(ev)allArticles.push(ev);});
@@ -3504,9 +3517,7 @@ function App() {
         const gn1 = await proxyCall("https://gnews.io/api/v4/top-headlines?token="+gnewsKey.trim()+"&topic=world&lang=en&max=10", null, "GET");
         const gd1 = await gn1.json();
         (gd1?.articles||[]).forEach(a=>{const ev=gnewsToEvent(a);if(ev)allArticles.push(ev);});
-        const gn2 = await proxyCall("https://gnews.io/api/v4/search?token="+gnewsKey.trim()+"&q=war+conflict+attack+disaster+crisis&lang=en&max=10", null, "GET");
-        const gd2 = await gn2.json();
-        (gd2?.articles||[]).forEach(a=>{const ev=gnewsToEvent(a);if(ev)allArticles.push(ev);});
+
       } catch(e) { sourceErrors.push("GNews: "+e.message.slice(0,80)); console.warn("GNews failed:", e.message); }
     }
 
@@ -3623,6 +3634,7 @@ function App() {
     gnewsKey, setGnewsKey, mediastackKey, setMediastackKey,
     newsorgKey, setNewsorgKey, currentsKey, setCurrentsKey,
     newsDataKey, setNewsDataKey, isZoomed,
+    searchQuery, setSearchQuery,
   });
 
   
@@ -3705,7 +3717,7 @@ function App() {
       display: "flex",
       gap: 4
     }
-  }, [["both", "⊕ BOTH", T.accentText, T.cardBg2, T.accentDim], ["risk", "◉ RISK EVENTS", T.neg, T.modeNegBg, theme === "dark" ? "#ff3030" : "#cc2020"], ["resilience", "◉ RESILIENCE", T.pos, T.modePossBg, theme === "dark" ? "#00cc66" : "#006644"]].map(([m, label, col, bg, bord]) => /*#__PURE__*/React.createElement("button", {
+  }, [["both", "⊕ BOTH", T.accentText, T.cardBg2, T.accentDim], ["risk", "◉ SUFFERING", T.neg, T.modeNegBg, theme === "dark" ? "#ff3030" : "#cc2020"], ["resilience", "◉ POSITIVE", T.pos, T.modePossBg, theme === "dark" ? "#00cc66" : "#006644"]].map(([m, label, col, bg, bord]) => /*#__PURE__*/React.createElement("button", {
     key: m,
     onClick: () => setMode(m),
     style: {
@@ -3867,13 +3879,13 @@ function App() {
     }
   }, /*#__PURE__*/React.createElement(Stat, {
     val: negEvs.length,
-    label: "RISK EVENTS",
+    label: "SUFFERING",
     col: T.neg,
     bg: T.negBg,
     border: T.neg
   }), /*#__PURE__*/React.createElement(Stat, {
     val: posEvs.length,
-    label: "RESILIENCE",
+    label: "POSITIVE",
     col: T.pos,
     bg: T.posBg,
     border: T.pos
@@ -3938,7 +3950,7 @@ function App() {
     cats: cats,
     setCats: setCats,
     onToggleAll: () => toggleGroup("neg"),
-    label: "RISK EVENTS",
+    label: "SUFFERING",
     labelCol: T.neg,
     T: T,
     catCounts: catCounts,
@@ -3954,7 +3966,7 @@ function App() {
     cats: cats,
     setCats: setCats,
     onToggleAll: () => toggleGroup("pos"),
-    label: "RESILIENCE",
+    label: "POSITIVITY",
     labelCol: T.pos,
     T: T,
     catCounts: catCounts,
@@ -4315,12 +4327,30 @@ function App() {
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
     },
-    title: "Drag to resize",
-    style: { height: 7, cursor: "ns-resize", userSelect: "none", flexShrink: 0,
+    title: "Drag to resize", style: { height: 7, cursor: "ns-resize", userSelect: "none", flexShrink: 0,
       background: T.border2, display: "flex", alignItems: "center", justifyContent: "center" }
   }, /*#__PURE__*/React.createElement("div", {
     style: { width: 36, height: 2, borderRadius: 1, background: T.textMuted, opacity: 0.5 }
   })),
+  /*#__PURE__*/React.createElement("div", {
+    style: { padding: "6px 10px", borderBottom: "1px solid " + T.border2, display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }
+  },
+  /*#__PURE__*/React.createElement("span", { style: { fontSize: 14, opacity: 0.6 } }, "🔍"),
+  /*#__PURE__*/React.createElement("input", {
+    type: "text", value: searchQuery,
+    onChange: function(e) { setSearchQuery(e.target.value); },
+    placeholder: "Filter events by keyword, country, category...",
+    style: {
+      flex: 1, background: "transparent",
+      border: "none", outline: "none",
+      color: T.text, fontFamily: "'JetBrains Mono',monospace", fontSize: 11,
+    }
+  }),
+  searchQuery && /*#__PURE__*/React.createElement("button", {
+    onClick: function() { setSearchQuery(""); },
+    style: { background: "none", border: "none", color: T.textMuted, cursor: "pointer", fontSize: 14, padding: 0 }
+  }, "×")
+),
   showFeed && /*#__PURE__*/React.createElement("div", {
     style: {
       maxHeight: feedH,
@@ -5012,7 +5042,7 @@ function App() {
       lineHeight: 1.7
     }
   }, "Formula: Displayed Intensity = Raw Intensity \xD7 (Weight / 7) \u2014 capped at 10"), /*#__PURE__*/React.createElement(PresetPicker, {
-    label: "RISK FOCUS",
+    label: "SUFFERING FOCUS",
     labelCol: T.neg,
     presets: SUF_PRESETS,
     active: sufPreset,
@@ -5032,7 +5062,7 @@ function App() {
       margin: "24px 0"
     }
   }), /*#__PURE__*/React.createElement(PresetPicker, {
-    label: "RESILIENCE FOCUS",
+    label: "POSITIVITY FOCUS",
     labelCol: T.pos,
     presets: POS_PRESETS,
     active: posPreset,
@@ -5042,7 +5072,7 @@ function App() {
     keys: POS_KEYS,
     weights: weights,
     setWeights: setWeights,
-    label: "RESILIENCE EVENTS",
+    label: "POSITIVITY CATEGORIES",
     labelCol: T.pos,
     onCustomize: () => setPosPreset("custom"),
     T: T
