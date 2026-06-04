@@ -1511,7 +1511,9 @@ function MobileApp({
   setNewsDataKey,
   isZoomed,
   searchQuery,
-  setSearchQuery
+  setSearchQuery,
+  scanKeyword,
+  setScanKeyword
 }) {
   const [mobileTab, setMobileTab] = React.useState('map');
   const [mobileEvent, setMobileEvent] = React.useState(null);
@@ -1617,7 +1619,52 @@ function MobileApp({
       lineHeight: 1,
       flexShrink: 0
     }
-  }, theme === 'dark' ? '☀' : '🌙'), /*#__PURE__*/React.createElement("button", {
+  }, theme === 'dark' ? '☀' : '🌙'), /*#__PURE__*/React.createElement("div", {
+    style: { position: "relative", flexShrink: 0 }
+  },
+    /*#__PURE__*/React.createElement("input", {
+      type: "text",
+      value: scanKeyword,
+      onChange: function(e) { setScanKeyword(e.target.value); },
+      onKeyDown: function(e) { if (e.key === "Enter" && !scanBusy) scanAction(); },
+      placeholder: "Scan topic...",
+      style: {
+        background: scanKeyword ? "rgba(42,114,224,0.15)" : "rgba(255,255,255,0.06)",
+        border: "1px solid " + (scanKeyword ? "#2a72e0" : T.border2),
+        borderRadius: 6, padding: "6px 26px 6px 10px",
+        color: T.text, fontFamily: "'JetBrains Mono',monospace",
+        fontSize: 11, outline: "none", width: 140,
+        transition: "all 0.2s",
+      }
+    }),
+    scanKeyword && /*#__PURE__*/React.createElement("button", {
+      onClick: function() { setScanKeyword(""); },
+      style: { position: "absolute", right: 5, top: "50%", transform: "translateY(-50%)",
+        background: "none", border: "none", color: T.textMuted, cursor: "pointer", fontSize: 13, padding: 0 }
+    }, "×")
+), /*#__PURE__*/React.createElement("div", {
+      style: { position: "relative", flexShrink: 0 }
+    },
+      /*#__PURE__*/React.createElement("input", {
+        type: "text",
+        value: scanKeyword,
+        onChange: function(e) { setScanKeyword(e.target.value); },
+        onKeyDown: function(e) { if (e.key === "Enter" && !scanBusy) scanAction(); },
+        placeholder: "Topic...",
+        style: {
+          background: scanKeyword ? "rgba(42,114,224,0.18)" : "rgba(255,255,255,0.07)",
+          border: "1px solid " + (scanKeyword ? "#2a72e0" : T.border2),
+          borderRadius: 6, padding: "7px 22px 7px 9px",
+          color: T.text, fontFamily: "'JetBrains Mono',monospace",
+          fontSize: 10, outline: "none", width: 90,
+        }
+      }),
+      scanKeyword && /*#__PURE__*/React.createElement("button", {
+        onClick: function() { setScanKeyword(""); },
+        style: { position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
+          background: "none", border: "none", color: T.textMuted, cursor: "pointer", fontSize: 12, padding: 0 }
+      }, "×")
+    ), /*#__PURE__*/React.createElement("button", {
     onClick: scanAction,
     disabled: scanBusy,
     style: {
@@ -3085,6 +3132,7 @@ function App() {
   const themeRef = useRef("dark");
   const [feedH, setFeedH] = useState(240);
   const [searchQuery, setSearchQuery] = useState("");
+  const [scanKeyword, setScanKeyword] = useState("");
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [mobileTab, setMobileTab] = useState("map"); // map | feed | settings
   const [showFilters, setShowFilters] = useState(false);
@@ -3488,7 +3536,7 @@ function App() {
         setScanMsg("Scanning global news (NewsAPI.ai)...");
         const erRes = await proxyCall("https://eventregistry.org/api/v1/article/getArticles", {
           action:"getArticles",
-          keyword: NEG_KW + " OR " + POS_KW,
+          keyword: (scanKeyword.trim() ? scanKeyword.trim() + " OR " : "") + NEG_KW + " OR " + POS_KW,
           lang:"eng",
           articlesCount: Math.min(eventCount * 2, 200),
           articlesSortBy:"date",
@@ -3514,7 +3562,7 @@ function App() {
     if (gnewsKey && gnewsKey.trim()) {
       try {
         setScanMsg("Scanning GNews...");
-        const gn1 = await proxyCall("https://gnews.io/api/v4/top-headlines?token="+gnewsKey.trim()+"&topic=world&lang=en&max=10", null, "GET");
+        const gn1 = await proxyCall(scanKeyword.trim() ? "https://gnews.io/api/v4/search?token="+gnewsKey.trim()+"&q="+encodeURIComponent(scanKeyword.trim())+"&lang=en&max=10" : "https://gnews.io/api/v4/top-headlines?token="+gnewsKey.trim()+"&topic=world&lang=en&max=10", null, "GET");
         const gd1 = await gn1.json();
         (gd1?.articles||[]).forEach(a=>{const ev=gnewsToEvent(a);if(ev)allArticles.push(ev);});
 
@@ -3559,7 +3607,7 @@ function App() {
     if (newsDataKey && newsDataKey.trim()) {
       try {
         setScanMsg("Scanning NewsData.io...");
-        const ndUrl = "https://newsdata.io/api/1/latest?apikey="+newsDataKey.trim()+"&language=en";
+        const ndUrl = "https://newsdata.io/api/1/latest?apikey="+newsDataKey.trim()+"&language=en"+(scanKeyword.trim()?"&q="+encodeURIComponent(scanKeyword.trim()):"");
         const ndRes = await proxyCall(ndUrl, null, "GET");
         const ndD = await ndRes.json();
         (ndD?.results||[]).forEach(a=>{const ev=ndToEvent(a);if(ev)allArticles.push(ev);});
@@ -3580,7 +3628,7 @@ function App() {
     const activeSources = [newsApiAiKey&&"NewsAPI.ai",guardianKey&&"Guardian",gnewsKey&&"GNews",mediastackKey&&"MediaStack",newsorgKey&&"NewsAPI.org",currentsKey&&"Currents",newsDataKey&&"NewsData.io"].filter(Boolean);
     setEvents(unique);
     setMood(calcMood(unique));
-    setSummary((unique.length||"No")+" events · "+activeSources.join(", "));
+    setSummary((unique.length||"No")+" events"+(scanKeyword.trim()?" · \u{1F50D}"+scanKeyword.trim():"")+(" · "+activeSources.join(", ")));
     setFetchedAt(new Date().toISOString());
     setLoading(false);
   }, [newsApiAiKey, newsDataKey, guardianKey, gnewsKey, eventCount, proxyCall]);
@@ -3635,6 +3683,7 @@ function App() {
     newsorgKey, setNewsorgKey, currentsKey, setCurrentsKey,
     newsDataKey, setNewsDataKey, isZoomed,
     searchQuery, setSearchQuery,
+    scanKeyword, setScanKeyword,
   });
 
   
